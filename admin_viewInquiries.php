@@ -1,5 +1,5 @@
 <?php
-include 'database/db_connect.php';
+include 'database/db_connect.php'; // Include database connection
 
 // Fetch client inquiries
 $queryClient = "SELECT * FROM client_inquiries ORDER BY date_created DESC";
@@ -15,6 +15,18 @@ $queryAgent = "SELECT agent_inquiries.*, agents.agent_fname, agents.agent_lname
 $stmtAgent = $pdo->prepare($queryAgent);
 $stmtAgent->execute();
 $agentInquiries = $stmtAgent->fetchAll(PDO::FETCH_ASSOC);
+
+// Handle admin comments
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $inquiryId = $_POST['inquiry_id'];
+    $inquiryType = $_POST['inquiry_type'];
+    $comment = $_POST['comment'];
+    $adminId = 1; // Example admin ID, replace with session-based or dynamic data
+    
+    $queryComment = "INSERT INTO admin_comments (inquiry_id, inquiry_type, admin_id, comment, date_created) VALUES (?, ?, ?, ?, NOW())";
+    $stmtComment = $pdo->prepare($queryComment);
+    $stmtComment->execute([$inquiryId, $inquiryType, $adminId, $comment]);
+}
 ?>
 
 <!DOCTYPE html>
@@ -22,134 +34,162 @@ $agentInquiries = $stmtAgent->fetchAll(PDO::FETCH_ASSOC);
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>View Inquiries</title>
+    <title>Inquiries Management</title>
+    <!-- Favicons -->
     <link href="assets/img/logo/2.png" rel="icon">
-    <link href="assets/img/apple-touch-icon.png" rel="apple-touch-icon">
 
-    <!-- Google Fonts -->
-    <link href="https://fonts.googleapis.com/css?family=Open+Sans:300,400,600,700|Poppins:300,400,500,600,700" rel="stylesheet">
-
-    <!-- Vendor CSS Files -->
-    <link href="assets/vendor/aos/aos.css" rel="stylesheet">
+    <!-- Minified CSS -->
     <link href="assets/vendor/bootstrap/css/bootstrap.min.css" rel="stylesheet">
-    <link href="assets/vendor/bootstrap-icons/bootstrap-icons.css" rel="stylesheet">
-    <link href="assets/vendor/boxicons/css/boxicons.min.css" rel="stylesheet">
-    <link href="assets/vendor/glightbox/css/glightbox.min.css" rel="stylesheet">
-    <link href="assets/vendor/remixicon/remixicon.css" rel="stylesheet">
-    <link href="assets/vendor/swiper/swiper-bundle.min.css" rel="stylesheet">
+    <link href="assets/css/admin.css" rel="stylesheet"> <!-- Ensure minified CSS -->
 
-    <!-- Template Main CSS File -->
-    <link href="assets/css/admin.css" rel="stylesheet">
-
-    <!-- Custom Styles -->
+    <!-- Deferred JS loading -->
+    <script defer src="assets/vendor/purecounter/purecounter_vanilla.js"></script>
+    <script defer src="assets/vendor/aos/aos.js"></script>
+    <script defer src="assets/vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
+    <script defer src="assets/vendor/glightbox/js/glightbox.min.js"></script>
+    <script defer src="assets/vendor/swiper/swiper-bundle.min.js"></script>
+    <script defer src="assets/js/admin.js"></script>
     <style>
         body {
             font-family: 'Poppins', sans-serif;
-            background-color: #f8f9fa;
-            margin: 0;
-            padding: 0;
-        }
-
-        .inquiry-container {
-            width: 90%;
-            max-width: 1200px;
-            margin: 0 auto;
+            background-color: #f4f6f9;
             padding: 20px;
-            background-color: #fff;
-            box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.1);
-            border-radius: 10px;
         }
-
-        h1 {
-            text-align: center;
-            color: #333;
-            margin-bottom: 30px;
+        .inquiry-container {
+            max-width: 1200px;
+            margin: 65px auto;
         }
-
-        h2 {
-            color: #007bff;
+        .inquiry-section {
+            background: #fff;
+            padding: 20px;
+            margin-bottom: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+        .inquiry-section h2 {
             margin-bottom: 15px;
+            font-size: 24px;
+            color: #333;
         }
-
-        table {
-            width: 100%;
+        .table {
             border-collapse: collapse;
-            margin-bottom: 30px;
+            width: 100%;
+            margin-bottom: 20px;
         }
-
-        table th, table td {
+        .table th {
+            background-color: #4CAF50;
+            text-align: center;
             padding: 12px;
-            text-align: left;
-            border: 1px solid #ddd;
-            background-color: #fafafa;
+            color: white;
+            border-bottom: 2px solid #dee2e6;
         }
-
-        table th {
+        .table td {
+            padding: 12px;
+            border-bottom: 1px solid #dee2e6;
+        }
+        .comment-form textarea {
+            width: 100%;
+            padding: 8px;
+            margin-top: 5px;
+            border: 1px solid #ced4da;
+            border-radius: 4px;
+        }
+        .comment-form button {
+            margin-top: 8px;
+            padding: 8px 12px;
             background-color: #007bff;
             color: #fff;
+            border: none;
+            border-radius: 4px;
         }
-
-        table tr:nth-child(even) {
-            background-color: #f2f2f2;
-        }
-
-        table tr:hover {
-            background-color: #e9ecef;
-        }
-
-        table td {
-            word-wrap: break-word;
+        .comment-form button:hover {
+            background-color: #0056b3;
         }
     </style>
-
 </head>
 <body>
+  <?php include 'admin_header.php'; ?>
+
     <div class="inquiry-container">
-        <h1>Inquiries</h1>
+        <h1 class="text-center mb-4">Inquiries Management</h1>
 
         <!-- Client Inquiries Section -->
-        <h2>Client Inquiries</h2>
-        <table>
-            <thead>
-                <tr>
-                    <th>Name</th>
-                    <th>Email</th>
-                    <th>Message</th>
-                    <th>Date</th>
-                </tr>
-            </thead>
-            <tbody>
-                <?php foreach ($clientInquiries as $inquiry): ?>
+        <div class="inquiry-section">
+            <h2>Client Inquiries</h2>
+            <table class="table">
+                <thead class="table-light">
                     <tr>
-                        <td><?php echo htmlspecialchars($inquiry['name']); ?></td>
-                        <td><?php echo htmlspecialchars($inquiry['email']); ?></td>
-                        <td><?php echo nl2br(htmlspecialchars($inquiry['message'])); ?></td>
-                        <td><?php echo htmlspecialchars($inquiry['date_created']); ?></td>
+                        <th>Name</th>
+                        <th>Email</th>
+                        <th>Message</th>
+                        <th>Date</th>
+                        <th>Admin Response</th>
                     </tr>
-                <?php endforeach; ?>
-            </tbody>
-        </table>
+                </thead>
+                <tbody>
+                    <?php if (count($clientInquiries) > 0): ?>
+                        <?php foreach ($clientInquiries as $inquiry): ?>
+                            <tr>
+                                <td><?php echo htmlspecialchars($inquiry['name']); ?></td>
+                                <td><?php echo htmlspecialchars($inquiry['email']); ?></td>
+                                <td><?php echo htmlspecialchars($inquiry['message']); ?></td>
+                                <td><?php echo htmlspecialchars($inquiry['date_created']); ?></td>
+                                <td>
+                                    <form method="POST" class="comment-form">
+                                        <input type="hidden" name="inquiry_id" value="<?php echo $inquiry['id']; ?>">
+                                        <input type="hidden" name="inquiry_type" value="client">
+                                        <textarea name="comment" rows="2" placeholder="Add a comment..." required></textarea>
+                                        <button type="submit" class="btn btn-primary btn-sm mt-2">Submit</button>
+                                    </form>
+                                </td>
+                            </tr>
+                        <?php endforeach; ?>
+                    <?php else: ?>
+                        <tr>
+                            <td colspan="5" class="text-center">No client inquiries found.</td>
+                        </tr>
+                    <?php endif; ?>
+                </tbody>
+            </table>
+        </div>
 
         <!-- Agent Inquiries Section -->
-        <h2>Agent Inquiries</h2>
-        <table>
-            <thead>
-                <tr>
-                    <th>Agent Name</th>
-                    <th>Message</th>
-                    <th>Date</th>
-                </tr>
-            </thead>
-            <tbody>
-                <?php foreach ($agentInquiries as $inquiry): ?>
+        <div class="inquiry-section">
+            <h2>Agent Inquiries</h2>
+            <table class="table">
+                <thead class="table-light">
                     <tr>
-                        <td><?php echo htmlspecialchars($inquiry['agent_fname']) . ' ' . htmlspecialchars($inquiry['agent_lname']); ?></td>
-                        <td><?php echo nl2br(htmlspecialchars($inquiry['message'])); ?></td>
-                        <td><?php echo htmlspecialchars($inquiry['date_created']); ?></td>
+                        <th>Agent Name</th>
+                        <th>Message</th>
+                        <th>Date</th>
+                        <th>Admin Response</th>
                     </tr>
-                <?php endforeach; ?>
-            </tbody>
-        </table>
+                </thead>
+                <tbody>
+                    <?php if (count($agentInquiries) > 0): ?>
+                        <?php foreach ($agentInquiries as $inquiry): ?>
+                            <tr>
+                                <td><?php echo htmlspecialchars($inquiry['agent_fname']) . ' ' . htmlspecialchars($inquiry['agent_lname']); ?></td>
+                                <td><?php echo htmlspecialchars($inquiry['message']); ?></td>
+                                <td><?php echo htmlspecialchars($inquiry['date_created']); ?></td>
+                                <td>
+                                    <form method="POST" class="comment-form">
+                                        <input type="hidden" name="inquiry_id" value="<?php echo $inquiry['id']; ?>">
+                                        <input type="hidden" name="inquiry_type" value="agent">
+                                        <textarea name="comment" rows="2" placeholder="Add a comment..." required></textarea>
+                                        <button type="submit" class="btn btn-primary btn-sm mt-2">Submit</button>
+                                    </form>
+                                </td>
+                            </tr>
+                        <?php endforeach; ?>
+                    <?php else: ?>
+                        <tr>
+                            <td colspan="4" class="text-center">No agent inquiries found.</td>
+                        </tr>
+                    <?php endif; ?>
+                </tbody>
+            </table>
+        </div>
     </div>
 </body>
 </html>

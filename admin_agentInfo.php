@@ -64,7 +64,7 @@ try {
         h2 {
             color: #333;
             font-size: 2rem;
-            margin-top: 30px;
+            margin-top: 65px;
             margin-bottom: 20px;
             text-align: center;
         }
@@ -88,7 +88,7 @@ try {
             padding: 10px 20px;
             font-size: 16px;
             border-radius: 5px;
-            background-color: #008a00;
+            background-color: #4CAF50;
             color: white;
             border: 1px solid;
             cursor: pointer;
@@ -111,12 +111,12 @@ try {
         .table th, .table td {
             padding: 15px;
             border: 1px solid #ddd;
-            text-align: left;
+            text-align: center;
             vertical-align: middle;
         }
 
         .table th {
-            background-color: #008a00;
+            background-color: #46923c;
             color: white;
             font-weight: bold;
         }
@@ -127,7 +127,7 @@ try {
 
         .edit-button {
             display: inline-block;
-            background-color: #008a00;
+            background-color: #4CAF50;
             color: #fff;
             padding: 8px 15px;
             text-decoration: none;
@@ -136,7 +136,7 @@ try {
         }
 
         .edit-button:hover {
-            background-color: #ddd;
+            background-color: #008a00;
             color: #fff;
         }
         @media (max-width: 768px) {

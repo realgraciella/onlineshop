@@ -32,14 +32,14 @@
           </li>         
           <li class='dropdown'><a href='#'><span>MESSAGES</span></a>
             <ul>
-              <li ><a href='admin_view_inquiries.php'><span>Inquiries</span></a></li>
-              <li ><a href='admin_view_feedbacks.php'><span>Feedbacks</span></a></li>
+              <li ><a href='admin_viewInquiries.php'><span>Inquiries</span></a></li>
+              <li ><a href='admin_viewFeedbacks.php'><span>Feedbacks</span></a></li>
             </ul>
           </li>
           <li class='dropdown'><a href='#'><span>PROFILE</span></a>
             <ul>
               <li ><a href='#'><span>Change Password</span></a></li>
-              <li ><a href='#'><span>Logout</span></a></li>
+              <li ><a href='login.php'><span>Logout</span></a></li>
             </ul>
           </li>
         </ul>

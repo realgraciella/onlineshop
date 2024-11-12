@@ -81,14 +81,29 @@ if (isset($_POST['upload'])) {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Admin - Add Product</title>
+     <!-- Favicons -->
     <link href="assets/img/logo/2.png" rel="icon">
+    <link href="assets/img/apple-touch-icon.png" rel="apple-touch-icon">
+
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css?family=Open+Sans:300,300i,400,400i,600,600i,700,700i|Raleway:300,300i,400,400i,500,500i,600,600i,700,700i|Poppins:300,300i,400,400i,500,500i,600,600i,700,700i" rel="stylesheet">
+
+    <!-- Vendor CSS Files -->
+    <link href="assets/vendor/aos/aos.css" rel="stylesheet">
     <link href="assets/vendor/bootstrap/css/bootstrap.min.css" rel="stylesheet">
+    <link href="assets/vendor/bootstrap-icons/bootstrap-icons.css" rel="stylesheet">
+    <link href="assets/vendor/boxicons/css/boxicons.min.css" rel="stylesheet">
+    <link href="assets/vendor/glightbox/css/glightbox.min.css" rel="stylesheet">
+    <link href="assets/vendor/remixicon/remixicon.css" rel="stylesheet">
+    <link href="assets/vendor/swiper/swiper-bundle.min.css" rel="stylesheet">
+
+    <!-- Template Main CSS File -->
     <link href="assets/css/admin.css" rel="stylesheet">
-    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    
     <style>
         .admin-container {
             background-color: #ffffff;
-            margin: 75px auto;
+            margin: 80px auto;
             padding: 25px;
             border-radius: 10px;
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
@@ -106,12 +121,16 @@ if (isset($_POST['upload'])) {
             border-radius: 5px;
         }
         .btn-primary {
-            background-color: #008a00;
+            background-color: #4CAF50;
             color: white;
             padding: 12px 18px;
             width: 100%;
+            border: 1px solid #008a00;
             border-radius: 5px;
             font-size: 15px;
+        }
+        .btn-primary:hover{
+            background-color: #008a00;
         }
     </style>
 </head>
@@ -119,7 +138,7 @@ if (isset($_POST['upload'])) {
 <?php include 'admin_header.php'; ?>
 
     <div class="admin-container mt-5">
-        <h2>Add Product</h2>
+        <h2 style="text-align: center">Add Product</h2>
         <form action="add_product.php" method="post" enctype="multipart/form-data">
             <!-- Brand Dropdown -->
             <div class="form-group">

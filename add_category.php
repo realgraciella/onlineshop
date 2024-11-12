@@ -154,7 +154,7 @@ $brands_result = $pdo->query("SELECT * FROM brands");
 
     button[type="submit"] {
         display: inline-block;
-        background-color: #008a00;
+        background-color: #4CAF50;
         color: white;
         border: none;
         padding: 10px 20px;
@@ -164,7 +164,7 @@ $brands_result = $pdo->query("SELECT * FROM brands");
     }
 
     button[type="submit"]:hover {
-        background-color: #45a049;
+        background-color: #008a00;
     }
 
     .input-wrapper {
@@ -218,12 +218,12 @@ $brands_result = $pdo->query("SELECT * FROM brands");
     }
 
     .edit-btn {
-        background-color: #008a00;
+        background-color: #4CAF50;
         color: white;
     }
 
     .edit-btn:hover {
-        background-color: #31b0d5;
+        background-color: #008a00;
     }
 
     .delete-btn {

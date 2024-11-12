@@ -393,7 +393,7 @@ main {
 }
 
 button {
-    background-color: #008a00;
+  background-color: #4CAF50;
     color: #000; /* Black text color */
     padding: 10px 15px;
     border-radius: 5px;
@@ -402,7 +402,7 @@ button {
 }
 
 button:hover {
-    background-color: #325032;
+    background-color: #008a00;
     color: #ffffff; /* Black text color on hover */
 }
 
@@ -453,7 +453,7 @@ button:hover {
 }
 
 .add-agent-form input[type="submit"] {
-  background-color: #008a00;
+  background-color: #4CAF50;
   color: #fff;
   border: none;
   padding: 12px;
@@ -465,7 +465,7 @@ button:hover {
 }
 
 .add-agent-form input[type="submit"]:hover {
-  background-color: #325032;
+  background-color: #008a00;
 }
 
 .add-agent-form .modal {
