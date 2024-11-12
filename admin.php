@@ -1,47 +1,80 @@
 <?php
-    include 'config.php';
+error_reporting(E_ALL);
+ini_set('display_errors', 1);
 
-    // Count appointments with pending status
-    $sqlPendingAppointments = "SELECT COUNT(*) as pendingAppointments FROM appointments WHERE status = 'pending'";
-    $stmtPendingAppointments = $conn->prepare($sqlPendingAppointments);
-    $stmtPendingAppointments->execute();
-    $resultPendingAppointments = $stmtPendingAppointments->fetch(PDO::FETCH_ASSOC);
-    $pendingAppointmentsCount = $resultPendingAppointments['pendingAppointments'];
+include 'database/db_connect.php'; // Include database connection
 
-    // Count total number of users
-    $sqlTotalUsers = "SELECT COUNT(*) as totalUsers FROM users";
-    $stmtTotalUsers = $conn->prepare($sqlTotalUsers);
-    $stmtTotalUsers->execute();
-    $resultTotalUsers = $stmtTotalUsers->fetch(PDO::FETCH_ASSOC);
-    $totalUsersCount = $resultTotalUsers['totalUsers'];
+// Fetch data for each section
+try {
+    // Top Agent (Agent with most sales)
+    $query = "SELECT agent_fname, agent_lname, SUM(quantity * price) AS total_sales 
+              FROM agents 
+              JOIN sales ON agents.agent_id = sales.agent_id 
+              GROUP BY agents.agent_id 
+              ORDER BY total_sales DESC LIMIT 1";
+    $stmt = $pdo->prepare($query);
+    $stmt->execute();
+    $topAgent = $stmt->fetch(PDO::FETCH_ASSOC);
+    $topAgentName = $topAgent ? $topAgent['agent_fname'] . ' ' . $topAgent['agent_lname'] : 'No data';
 
-    // Count total number of services
-    $sqlTotalServices = "SELECT COUNT(*) as totalServices FROM services";
-    $stmtTotalServices = $conn->prepare($sqlTotalServices);
-    $stmtTotalServices->execute();
-    $resultTotalServices = $stmtTotalServices->fetch(PDO::FETCH_ASSOC);
-    $totalServicesCount = $resultTotalServices['totalServices'];
+    // Active Agents (Total active agents)
+    $query = "SELECT COUNT(*) AS active_agents_count FROM agents WHERE agent_status = 'active'";
+    $stmt = $pdo->prepare($query);
+    $stmt->execute();
+    $activeAgents = $stmt->fetch(PDO::FETCH_ASSOC);
+    $activeAgentsCount = $activeAgents['active_agents_count'];
 
-    // Count total number of staff members
-    $sqlTotalStaff = "SELECT COUNT(*) as totalStaff FROM staff_reg";
-    $stmtTotalStaff = $conn->prepare($sqlTotalStaff);
-    $stmtTotalStaff->execute();
-    $resultTotalStaff = $stmtTotalStaff->fetch(PDO::FETCH_ASSOC);
-    $totalStaffCount = $resultTotalStaff['totalStaff'];
+    // Sales (Sales summary for the week)
+    $query = "SELECT SUM(sale_amount) AS weekly_sales FROM sales WHERE sale_date >= CURDATE() - INTERVAL 7 DAY";
+    $stmt = $pdo->prepare($query);
+    $stmt->execute();
+    $sales = $stmt->fetch(PDO::FETCH_ASSOC);
+    $weeklySales = $sales ? $sales['weekly_sales'] : 0;
 
-    // Count total number of feedbacks
-    $sqlTotalFeedbacks = "SELECT COUNT(*) as totalFeedbacks FROM feedbacks";
-    $stmtTotalFeedbacks = $conn->prepare($sqlTotalFeedbacks);
-    $stmtTotalFeedbacks->execute();
-    $resultTotalFeedbacks = $stmtTotalFeedbacks->fetch(PDO::FETCH_ASSOC);
-    $totalFeedbacksCount = $resultTotalFeedbacks['totalFeedbacks'];
+    // Inventory (Low stock products)
+    $query = "SELECT product_name, stock_level FROM products WHERE stock_level < 10";
+    $stmt = $pdo->prepare($query);
+    $stmt->execute();
+    $lowStockProducts = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    $lowStockCount = count($lowStockProducts);
 
-    // Count total number of inquiries
-    $sqlTotalInquiries = "SELECT COUNT(*) as totalInquiries FROM inquiries";
-    $stmtTotalInquiries = $conn->prepare($sqlTotalInquiries);
-    $stmtTotalInquiries->execute();
-    $resultTotalInquiries = $stmtTotalInquiries->fetch(PDO::FETCH_ASSOC);
-    $totalInquiriesCount = $resultTotalInquiries['totalInquiries'];
+    // Combined Feedbacks (Number of product and system feedbacks)
+    $queryProductFeedback = "SELECT COUNT(*) AS product_feedback_count FROM product_feedback";
+    $stmtProduct = $pdo->prepare($queryProductFeedback);
+    $stmtProduct->execute();
+    $productFeedbacks = $stmtProduct->fetch(PDO::FETCH_ASSOC);
+    $productFeedbacksCount = $productFeedbacks['product_feedback_count'];
+
+    $querySystemFeedback = "SELECT COUNT(*) AS system_feedback_count FROM system_feedback";
+    $stmtSystem = $pdo->prepare($querySystemFeedback);
+    $stmtSystem->execute();
+    $serviceFeedbacks = $stmtSystem->fetch(PDO::FETCH_ASSOC);
+    $serviceFeedbacksCount = $serviceFeedbacks['system_feedback_count'];
+
+    // Total Combined Feedbacks
+    $totalFeedbacksCount = $productFeedbacksCount + $serviceFeedbacksCount;
+
+    // Inquiries (Number of inquiries)
+    // Count inquiries from clients
+    $queryClientInquiries = "SELECT COUNT(*) AS client_inquiry_count FROM client_inquiries";
+    $stmtClient = $pdo->prepare($queryClientInquiries);
+    $stmtClient->execute();
+    $clientInquiries = $stmtClient->fetch(PDO::FETCH_ASSOC);
+    $clientInquiriesCount = $clientInquiries['client_inquiry_count'];
+
+    // Count inquiries from agents
+    $queryAgentInquiries = "SELECT COUNT(*) AS agent_inquiry_count FROM agent_inquiries";
+    $stmtAgent = $pdo->prepare($queryAgentInquiries);
+    $stmtAgent->execute();
+    $agentInquiries = $stmtAgent->fetch(PDO::FETCH_ASSOC);
+    $agentInquiriesCount = $agentInquiries['agent_inquiry_count'];
+
+    // Total Inquiries
+    $totalInquiriesCount = $clientInquiriesCount + $agentInquiriesCount;
+} catch (PDOException $e) {
+    echo "Error: " . $e->getMessage();
+    exit();
+}
 ?>
 
 <!DOCTYPE html>
@@ -50,17 +83,14 @@
 <head>
   <meta charset="utf-8">
   <meta content="width=device-width, initial-scale=1.0" name="viewport">
-
-  <title>Admin Page</title>
-  <meta content="" name="description">
-  <meta content="" name="keywords">
+  <title>Admin Dashboard</title>
 
   <!-- Favicons -->
-  <link href="assets/img/favicon.png" rel="icon">
+  <link href="assets/img/logo/2.png" rel="icon">
   <link href="assets/img/apple-touch-icon.png" rel="apple-touch-icon">
 
   <!-- Google Fonts -->
-  <link href="https://fonts.googleapis.com/css?family=Open+Sans:300,300i,400,400i,600,600i,700,700i|Raleway:300,300i,400,400i,500,500i,600,600i,700,700i|Poppins:300,300i,400,400i,500,500i,600,600i,700,700i" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css?family=Open+Sans:300,400,600,700|Poppins:300,400,500,600,700" rel="stylesheet">
 
   <!-- Vendor CSS Files -->
   <link href="assets/vendor/aos/aos.css" rel="stylesheet">
@@ -76,179 +106,136 @@
 </head>
 
 <style>
+  body {
+      font-family: 'Poppins', sans-serif;
+      background-color: #f4f6f9;
+      color: #444;
+  }
+
   #dashboard {
-    text-align: center;
-    padding: 20px;
-    margin-top: 50px;
+      padding: 40px 20px;
+      text-align: center;
+  }
+
+  #dashboard h2 {
+      font-size: 2em;
+      font-weight: 600;
+      color: #333;
+      margin-top: 50px;
+      margin-bottom: 30px;
   }
 
   .grid-container {
       display: grid;
-      grid-template-columns: repeat(2, 1fr);
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
       gap: 20px;
   }
 
   .grid-item {
+      background-color: #ffffff;
       border-radius: 10px;
-      padding: 20px;
-      text-align: left;
+      padding: 25px;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+      transition: box-shadow 0.3s ease;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
   }
 
-  .appointments {
-      background-color: #E8A4D9;
+  .grid-item h3 {
+      font-size: 1.2em;
+      font-weight: 600;
+      color: #444;
+      margin-bottom: 10px;
   }
 
-  .customers {
-      background-color: #F6D6AD;
+  .grid-item p {
+      font-size: 1em;
+      color: #777;
+      margin: 5px 0;
   }
 
-  .services {
-      background-color: #C7CEEA;
+  .grid-item:hover {
+      box-shadow: 0 8px 15px rgba(0, 0, 0, 0.15);
   }
 
-  .staff {
-      background-color: #FFD3B6;
-  }
-
-  .feedbacks {
-    background-color: #B5EAD7;
-  }
-
-  .inquiries {
-      background-color: #F3B6D7;
-  }
-
-  button {
+  .grid-item button {
       border: none;
       padding: 10px 20px;
       border-radius: 5px;
-      cursor: pointer;
+      font-weight: 500;
+      color: #ffffff;
+      transition: background-color 0.3s ease;
+      align-self: flex-end;
   }
+
 </style>
 
 <body>
-
-  <?php
-    include 'admin_header.php';
-  ?>
+  <?php include 'admin_header.php'; ?>
 
   <main id="main">
-
     <section id="dashboard">
-    <h2 style="text-align: center; margin-top: 20px; margin-bottom: 30px;">DASHBOARD</h2>
-    <div class="grid-container">
-        
-        <div class="grid-item appointments">
-            <h3>Appointments</h3>
-            <p><?php echo $pendingAppointmentsCount; ?> upcoming appointments</p>
-            <a href="adminAppointments.php" style="float: right;">
-              <button style="background-color: #333333; color: #fff; border-radius: 4px; border: 1px solid #fff;">View</button>
-            </a>
-        </div>
+      <h2>DASHBOARD</h2>
+      <div class="grid-container">
 
-        <div class="grid-item customers">
-            <h3>Customers</h3>
-            <p><?php echo $totalUsersCount; ?> total customers</p>
-            <a href="admin_view_cust.php" style="float: right;">
-              <button style="background-color: #333333; color: #fff; border-radius: 4px; border: 1px solid #fff;">View</button>
-            </a>
-        </div>
-
-        <div class="grid-item services">
-            <h3>Services</h3>
-            <p><?php echo $totalServicesCount; ?> available services</p>
-            <a href="add_services.php" style="float: right;">
-              <button style="background-color: #333333; color: #fff; border-radius: 4px; border: 1px solid #fff;">View</button>
-            </a>
-        </div>
-
-        <div class="grid-item staff">
-            <h3>Staff</h3>
-            <p><?php echo $totalStaffCount; ?> staff members</p>
-            <a href="admin_view_staff.php" style="float: right;">
-              <button style="background-color: #333333; color: #fff; border-radius: 4px; border: 1px solid #fff;">View</button>
-            </a>
-        </div>
-
-        <div class="grid-item feedbacks">
-            <h3>Feedbacks</h3>
-            <p><?php echo $totalFeedbacksCount; ?> feedbacks received</p>
-            <a href="admin_view_feedbacks.php" style="float: right;">
-              <button style="background-color: #333333; color: #fff; border-radius: 4px; border: 1px solid #fff;">View</button>
-            </a>
-        </div>
-
-        <div class="grid-item inquiries">
-            <h3>Inquiries</h3>
-            <p><?php echo $totalInquiriesCount; ?> inquiries</p>
-            <a href="admin_view_inquiries.php" style="float: right;">
-              <button style="background-color: #333333; color: #fff; border-radius: 4px; border: 1px solid #fff;">View</button>
-            </a>
-        </div>
-
-    </div>
-</section>
-
-  </main><!-- End #main -->
-
-  <!-- ======= Footer ======= -->
-  <footer id="footer">
-    <div class="footer-top">
-      <div class="foot-container">
-        <div class="row"> 
-
-          <div class="col-lg-3 col-md-6">
-            <div class="footer-info ">
-              <h3>Gp<span>.</span></h3>
-              <p>
-                Barangay 3 <br>
-                Nasugbu, Batangas<br><br>
-                <strong>Phone:</strong> 0997-199-4671<br>
-                <strong>Email:</strong> Emilyabut@gmail.com<br>
-              </p>
-              <div class="social-links mt-3">
-                <a href="#" class="twitter"><i class="bx bxl-twitter"></i></a>
-                <a href="#" class="facebook"><i class="bx bxl-facebook"></i></a>
-                <a href="#" class="instagram"><i class="bx bxl-instagram"></i></a>
-                <a href="#" class="google-plus"><i class="bx bxl-skype"></i></a>
-                <a href="#" class="linkedin"><i class="bx bxl-linkedin"></i></a>
-              </div>
-            </div>
+          <!-- Top Agent -->
+          <div class="grid-item top-agent">
+              <h3>Top Agent</h3>
+              <p><?php echo $topAgentName; ?> with the highest sales</p>
+              <a href="admin_topAgent.php">
+                <button>View</button>
+              </a>
           </div>
 
-          <div class="col-lg-2 col-md-6 footer-links">
-            <h4>Our Services</h4>
-            <ul>
-              <li><i class="bx bx-chevron-right"></i> <a href="#">Hair Treatment</a></li>
-              <li><i class="bx bx-chevron-right"></i> <a href="#">Body Spa Treatments</a></li>
-              <li><i class="bx bx-chevron-right"></i> <a href="#">Bridal Treatments</a></li>
-              <li><i class="bx bx-chevron-right"></i> <a href="#">Nail Treatments</a></li>
-            </ul>
+          <!-- Active Agents -->
+          <div class="grid-item active-agent">
+              <h3>Active Agents</h3>
+              <p><?php echo $activeAgentsCount; ?> active agents</p>
+              <a href="admin_viewAgent.php">
+                <button>View</button>
+              </a>
           </div>
 
-          <div class="col-lg-3 col-md-6 footer-links">
-            <h4>Our Services</h4>
-            <ul>
-              <li><i class="bx bx-chevron-right"></i> <a href="#">EyelashTreatments</a></li>
-              <li><i class="bx bx-chevron-right"></i> <a href="#">Eyebrow Treatments</a></li>
-              <li><i class="bx bx-chevron-right"></i> <a href="#">Lip Treatments</a></li>
-              <li><i class="bx bx-chevron-right"></i> <a href="#">Face Treatments</a></li>
-            </ul>
+          <!-- Sales -->
+          <div class="grid-item sales">
+              <h3>Sales</h3>
+              <p><?php echo $weeklySales; ?> total sales this week</p>
+              <a href="admin_sales.php">
+                <button>View</button>
+              </a>
           </div>
 
-          <div class="col-lg-4 col-md-6 footer-newsletter">
-            <h4>Email Us!</h4>
-            <p>For inquiries contact us via email.</p>
-            <form action="" method="post">
-              <input type="email" name="email"><input type="submit" value="Subscribe">
-            </form>
-
+          <!-- Inventory -->
+          <div class="grid-item inventory">
+              <h3>Inventory</h3>
+              <p><?php echo $lowStockCount; ?> products with low stock</p>
+              <a href="admin_inventory.php">
+                <button>View</button>
+              </a>
           </div>
 
-        </div>
+          <!-- Combined Feedbacks -->
+          <div class="grid-item feedbacks">
+              <h3>Combined Feedbacks</h3>
+              <p><?php echo $totalFeedbacksCount; ?> total feedbacks (Product + Service)</p>
+              <a href="admin_viewFeedbacks.php">
+                <button>View</button>
+              </a>
+          </div>
+
+          <!-- Inquiries -->
+          <div class="grid-item inquiries">
+              <h3>Inquiries</h3>
+              <p><?php echo $totalInquiriesCount; ?> total inquiries (Clients + Agents)</p>
+              <a href="admin_viewInquiries.php">
+                <button>View</button>
+              </a>
+          </div>
+
       </div>
-    </div>
-  </footer>End Footer
+    </section>
+  </main>
 
   <div id="preloader"></div>
   <a href="#" class="back-to-top d-flex align-items-center justify-content-center"><i class="bi bi-arrow-up-short"></i></a>
@@ -263,8 +250,7 @@
   <script src="assets/vendor/php-email-form/validate.js"></script>
 
   <!-- Template Main JS File -->
-  <script src="assets/js/main.js"></script>
+  <script src="assets/js/admin.js"></script>
 
 </body>
-
 </html>

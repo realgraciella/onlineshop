@@ -10,30 +10,23 @@
 
       <nav id="navbar" class="navbar order-last order-lg-0">
         <ul>
-          <li><a class="nav-link scrollto " href="admin.php">HOME</a></li>
+          <li><a class="nav-link scrollto " href="agent.php">HOME</a></li>
           <li class='dropdown'><a href='#'><span>BROCHURE</span></a>
             <ul>
               
             </ul>
           </li>
-          <li class='dropdown'><a href='#'><span>PRODUCTS</span></a>
+          <li class='dropdown'><a href='#'><span>CLIENT</span></a>
             <ul>
-              <li ><a href='add_brand.php'><span>Add Brand</span></a></li>
-              <li ><a href='add_category.php'><span>Add Category</span></a></li>
-              <li ><a href='add_product.php'><span>Add Product</span></a></li>
-            </ul>
-          </li>
-          <li class='dropdown'><a href='#'><span>AGENTS</span></a>
-            <ul>
-              <li ><a href='admin_registerAgent.php'><span>Add Sales Agent</span></a></li>
-              <li ><a href='admin_viewAgent.php'><span>View Sales Agent</span></a></li>
-              <li ><a href='admin_agentInfo.php'><span>Sales Agent Information</span></a></li>
+              <li ><a href='agent_registerClient.php'><span>Add Client</span></a></li>
+              <li ><a href='agent_viewClient.php'><span>View Client</span></a></li>
+              <li ><a href='agent_clientInfo.php'><span>Client Information</span></a></li>
             </ul>
           </li>         
           <li class='dropdown'><a href='#'><span>MESSAGES</span></a>
             <ul>
-              <li ><a href='admin_view_inquiries.php'><span>Inquiries</span></a></li>
-              <li ><a href='admin_view_feedbacks.php'><span>Feedbacks</span></a></li>
+              <li ><a href='agent_view_inquiries.php'><span>Inbox</span></a></li>
+              <li ><a href='agent_view_feedbacks.php'><span>Feedbacks</span></a></li>
             </ul>
           </li>
           <li class='dropdown'><a href='#'><span>PROFILE</span></a>

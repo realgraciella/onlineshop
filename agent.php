@@ -37,7 +37,7 @@
 <body>
 
   <?php
-    include 'index_header.php';
+    include 'agent_header.php';
   ?>
 
   <!-- ======= Hero Section ======= -->

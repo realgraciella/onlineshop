@@ -1,13 +1,20 @@
 <?php
-include('config.php');
+include('database/db_connect.php');
 
-// Function to fetch categories from the database
-function fetchCategories($conn) {
+// Function to fetch categories from the database using PDO
+function fetchCategories($pdo) {
     $categories = array();
-    $result = $conn->query("SELECT * FROM category");
-
-    while ($row = $result->fetch(PDO::FETCH_ASSOC)) {
-        $categories[] = $row;
+    $sql = "SELECT c.category_id, c.category_name, b.brand_name 
+            FROM categories c 
+            JOIN brands b ON c.brand_id = b.brand_id";
+    
+    try {
+        $stmt = $pdo->query($sql);
+        while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+            $categories[] = $row;
+        }
+    } catch (PDOException $e) {
+        die("Database query failed: " . $e->getMessage());
     }
 
     return $categories;
@@ -15,38 +22,52 @@ function fetchCategories($conn) {
 
 // Check if the form is submitted for adding a category
 if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST["addCategory"])) {
-    $categoryName = $_POST["category-name"];
+    $brandId = $_POST["brand_id"];  // New field for brand selection
+    $categoryName = $_POST["category_name"];
 
-    $sql = "INSERT INTO category (categoryName) VALUES ('$categoryName')";
-    
-    if ($conn->query($sql)) {
-        // No need for success or error messages here, as they will be shown in the button notification
-    } else {
-        // No need for error messages here, as they will be shown in the button notification
+    // Use prepared statements for insert
+    try {
+        $sql = "INSERT INTO categories (brand_id, category_name) VALUES (:brandId, :categoryName)";
+        $stmt = $pdo->prepare($sql);
+        $stmt->bindParam(':brandId', $brandId, PDO::PARAM_INT);
+        $stmt->bindParam(':categoryName', $categoryName, PDO::PARAM_STR);
+        
+        if ($stmt->execute()) {
+            // Optionally, you could add success messages, but we avoid output here for cleaner UI
+        } else {
+            // Handle unsuccessful insert
+        }
+    } catch (PDOException $e) {
+        // Handle exception for database query failure
+        die("Error inserting category: " . $e->getMessage());
     }
 }
 
-
+// Check if a category is being deleted
 if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST["deleteCategoryId"])) {
     $deleteCategoryId = $_POST["deleteCategoryId"];
 
+    // Prepare and execute the delete query using PDO
     try {
-        $deleteSql = "DELETE FROM category WHERE id = ?";
-        
-        $deleteStmt = $conn->prepare($deleteSql);
+        $deleteSql = "DELETE FROM categories WHERE category_id = :categoryId";
+        $stmt = $pdo->prepare($deleteSql);
+        $stmt->bindParam(':categoryId', $deleteCategoryId, PDO::PARAM_INT);
+        $stmt->execute();
 
-        $deleteStmt->bindParam(1, $deleteCategoryId);
-
-        $deleteStmt->execute();
-
-        $categories = fetchCategories($conn);
-    } catch (\Exception $e) {
-        // No need for error messages here, as they will be shown in the button notification
+        // Fetch categories again after deletion
+        $categories = fetchCategories($pdo);
+    } catch (PDOException $e) {
+        // Handle any errors during delete
+        die("Error deleting category: " . $e->getMessage());
     }
 }
 
-// Fetch initial categories
-$categories = fetchCategories($conn);
+// Fetch initial categories using PDO
+$categories = fetchCategories($pdo);
+
+// Fetch brands for the dropdown using PDO
+$brands_result = $pdo->query("SELECT * FROM brands");
+
 ?>
 
 <!DOCTYPE html>
@@ -56,12 +77,12 @@ $categories = fetchCategories($conn);
   <meta charset="utf-8">
   <meta content="width=device-width, initial-scale=1.0" name="viewport">
 
-  <title>Admin Page</title>
+  <title>Admin Page - Add Category</title>
   <meta content="" name="description">
   <meta content="" name="keywords">
 
   <!-- Favicons -->
-  <link href="assets/img/favicon.png" rel="icon">
+  <link href="assets/img/logo/2.png" rel="icon">
   <link href="assets/img/apple-touch-icon.png" rel="apple-touch-icon">
 
   <!-- Google Fonts -->
@@ -81,97 +102,167 @@ $categories = fetchCategories($conn);
 </head>
 
 <style>
-    .staff-container {
-        margin: 0 auto;
-    }
-
-    .staff-container h2 {
-        text-align: center;
-    }
-
-    #category-form {
-        max-width: 500px;
-        height: 160px;
-        margin: 0 auto;
+    /* General Container Styling */
+    .admin-container {
+        margin: 65px auto;
+        max-width: 800px;
         padding: 20px;
-        border: 2px solid #FFC451;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        background-color: #fdfdfd;
         border-radius: 10px;
     }
 
-    #category-name {
+    .admin-container h2 {
+        text-align: center;
+        font-size: 28px;
+        color: #333;
+        margin-bottom: 20px;
+    }
+
+    /* Form Styling */
+    #category-form {
+        max-width: 500px;
+        margin: 0 auto;
+        padding: 20px;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        background: #f8f8f8;
+    }
+
+    label {
+        font-weight: 600;
+        display: block;
+        margin-bottom: 5px;
+        color: #333;
+    }
+
+    input[type="text"], select {
         width: 100%;
-        padding: 8px;
-        margin-bottom: 10px;
+        padding: 10px;
+        margin-bottom: 15px;
+        border: 1px solid #ccc;
+        border-radius: 4px;
         box-sizing: border-box;
-        border: 1px solid #FFF;
-        border-radius: 5px;
+        transition: border-color 0.3s ease-in-out;
+    }
+
+    input[type="text"]:focus, select:focus {
+        outline: none;
+        border-color: #ffc451;
+        box-shadow: 0 0 5px rgba(255, 196, 81, 0.4);
     }
 
     button[type="submit"] {
-        background-color: #FFC451;
+        display: inline-block;
+        background-color: #008a00;
         color: white;
         border: none;
-        padding: 8px 15px;
+        padding: 10px 20px;
         border-radius: 5px;
         cursor: pointer;
+        transition: background-color 0.3s ease-in-out;
     }
 
     button[type="submit"]:hover {
-        color: black;
-        background-color: #FFC451;
+        background-color: #45a049;
     }
 
+    .input-wrapper {
+        display: flex;
+        align-items: center;
+    }
+
+    .input-wrapper input {
+        flex-grow: 1;
+    }
+
+    .input-wrapper button {
+        margin-left: 10px;
+    }
+
+    /* Table Styling */
     #category-table {
         border-collapse: collapse;
-        overflow: hidden;
-        margin-top: 20px;
         width: 100%;
+        margin-top: 20px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
     }
 
-    #category-table th,
-    #category-table td {
-        border: 1px solid #FFC451;
-        padding: 10px;
+    #category-table th, #category-table td {
+        border: 1px solid #ddd;
+        padding: 12px;
         text-align: center;
+        font-size: 14px;
     }
 
     #category-table th {
-        background-color: #FFC451;
-        color: white;
+        background-color: #008a00;
+        color: #fff;
+    }
+
+    #category-table tr:nth-child(even) {
+        background-color: #f9f9f9;
+    }
+
+    #category-table tr:hover {
+        background-color: #f1f1f1;
+    }
+
+    .edit-btn, .delete-btn {
+        border: none;
+        padding: 8px 12px;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 12px;
+        transition: background-color 0.3s ease-in-out;
     }
 
     .edit-btn {
-        background-color: #B5EAD7;
+        background-color: #008a00;
         color: white;
-        border: none;
-        padding: 5px 10px;
-        border-radius: 5px;
-        cursor: pointer;
-        margin-right: 5px;
     }
 
     .edit-btn:hover {
-        color: black;
-        background-color: #B5EAD7;
+        background-color: #31b0d5;
+    }
+
+    .delete-btn {
+        background-color: #d9534f;
+        color: white;
+    }
+
+    .delete-btn:hover {
+        background-color: #c9302c;
     }
 </style>
 
 <body>
 
   <?php
-    include 'config.php';
     include 'admin_header.php';
+
+    // Fetch brands for the dropdown
+    $brands_result = $pdo->query("SELECT * FROM brands");
   ?>
 
-  <main id="main">  
+<main id="main">  
     <section>
-        <div class="staff-container">
-            <h2 style="text-align: center; margin-top: 50px; margin-bottom: 10px;">SERVICE CATEGORY</h2>
+        <div class="admin-container">
+            <h2 style="text-align: center; margin-top: 50px; margin-bottom: 10px;">ADD NEW CATEGORY</h2>
             <form id="category-form" method="post" action="add_category.php">
+                <!-- Brand Dropdown -->
+                <label for="brand-id">Select Brand:</label>
+                <select id="brand-id" name="brand_id" required>
+                    <option value="">Select Brand</option>
+                    <?php while ($brand = $brands_result->fetch(PDO::FETCH_ASSOC)) : ?>
+                        <option value="<?php echo $brand['brand_id']; ?>"><?php echo $brand['brand_name']; ?></option>
+                    <?php endwhile; ?>
+                </select>
+
                 <label for="category-name">Category Name:</label>
                 <div class="input-wrapper">
-                    <input type="text" id="category-name" name="category-name" placeholder="Enter category name" required>
-                    <button type="submit" name="addCategory" style="float: right; background-color: #4CAF50; color: #fff; border-radius: 4px; border: 1px solid #45a049;" onclick="return confirm('Are you sure you want to add this category?') && confirmSuccessMessage();">Save</button>
+                    <input type="text" id="category-name" name="category_name" placeholder="Enter category name" required>
+                    <button type="submit" name="addCategory" style="float: right; background-color: #008a00; color: #fff; border-radius: 4px; border: 1px solid #45a049;" onclick="return confirm('Are you sure you want to add this category?') && confirmSuccessMessage();">Save</button>
                 </div>
             </form>
 
@@ -183,23 +274,24 @@ $categories = fetchCategories($conn);
                     <tr>
                         <th>ID</th>
                         <th>Category Name</th>
+                        <th>Brand Name</th>
                         <th>Actions</th>
                     </tr>
                 </thead>
                 <tbody>
                     <?php foreach ($categories as $category): ?>
                         <tr>
-                            <td><?= $category['id']; ?></td>
-                            <td><?= $category['categoryName']; ?></td>
+                            <td><?= $category['category_id']; ?></td>
+                            <td><?= $category['category_name']; ?></td>
+                            <td><?= $category['brand_name']; ?></td>
                             <td>
                                 <!-- Edit button (you can add the edit functionality as needed) -->
                                 <button class="edit-btn">Edit</button>
 
                                 <!-- Delete button with a form -->
                                 <form action="add_category.php" method="post" style="display: inline;">
-                                    <input type="hidden" name="deleteCategoryId" value="<?= $category['id']; ?>">
-                                    <button type="submit" class="delete-btn" style="background-color: red; color: white;" onclick="return confirm('Are you sure you want to delete this category?') && confirmSuccessMessage();">Delete</button>
-
+                                    <input type="hidden" name="deleteCategoryId" value="<?= $category['category_id']; ?>">
+                                    <button type="submit" class="delete-btn" style="background-color: red; color: white;" onclick="return confirm('Are you sure you want to delete this category?') && confirmDeleteMessage();">Delete</button>
                                 </form>
                             </td>
                         </tr>
@@ -209,7 +301,6 @@ $categories = fetchCategories($conn);
 
         </div>
     </section>
-
   </main><!-- End #main -->
 
   <script>
@@ -223,10 +314,6 @@ $categories = fetchCategories($conn);
         return true; // Continue with form submission
     }
   </script>
-
-  <?php
-    include 'footer.php';
-  ?>
 
   <div id="preloader"></div>
   <a href="#" class="back-to-top d-flex align-items-center justify-content-center"><i class="bi bi-arrow-up-short"></i></a>

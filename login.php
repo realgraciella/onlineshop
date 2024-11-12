@@ -1,89 +1,84 @@
 <?php
-include('config.php');
+session_start();
+include 'database/db_connect.php'; // Database connection using PDO
 
-if ($_SERVER["REQUEST_METHOD"] == "POST") {
-    $email = $_POST["email"];
-    $password = $_POST["password"];
+if (isset($_POST['login'])) {
+    $username = $_POST['username'];
+    $password = $_POST['password'];
 
-    // TODO: Validate and sanitize input
-
-    $sql = "SELECT * FROM users WHERE email=:email AND password=:password";
-    $stmt = $conn->prepare($sql);
-    $stmt->bindParam(':email', $email);
-    $stmt->bindParam(':password', $password);
-    $stmt->execute();
-
-    $result = $stmt->fetch(PDO::FETCH_ASSOC);
-
-    if ($result) {
-        // User login successful
-
-        // Insert a record into the logins table
-        $custId = $result['cust_id'];
-        $email = $result['email'];
-        $date = date("Y-m-d");
-        $time = date("H:i:s");
-
-        $insertSql = "INSERT INTO logins (cust_id, email, date, time) VALUES (:custId, :email, :date, :time)";
-        $insertStmt = $conn->prepare($insertSql);
-        $insertStmt->bindParam(':custId', $custId);
-        $insertStmt->bindParam(':email', $email);
-        $insertStmt->bindParam(':date', $date);
-        $insertStmt->bindParam(':time', $time);
-        $insertStmt->execute();
-
-        // Default redirection for all users
-        header("Location: customer.php");
+    // Check for default admin credentials
+    if ($username == 'fashionadmin' && $password == 'admin310') {
+        $_SESSION['username'] = 'fashionadmin';
+        $_SESSION['role'] = 'admin';
+        header('Location: admin.php');
         exit();
-    } else {
-        // Login failed
-        echo "Invalid email or password";
     }
 
-    // Close the connection
-    $conn = null;
+    try {
+        // Prepare the query to check username
+        $query = "SELECT * FROM users WHERE username = :username";
+        $stmt = $pdo->prepare($query);
+        $stmt->bindParam(':username', $username);
+        $stmt->execute();
+
+        // Fetch the result
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        if ($row) {
+            // Check password
+            if (password_verify($password, $row['password'])) {
+                $_SESSION['username'] = $username;
+                $_SESSION['role'] = $row['role'];
+
+                // Redirect based on role
+                if ($row['role'] == 'admin') {
+                    header('Location: admin.php');
+                } elseif ($row['role'] == 'Sales Agent') {
+                    header('Location: salesagent.php');
+                } elseif ($row['role'] == 'client') {
+                    header('Location: customer.php');
+                } else {
+                    echo "Invalid role!";
+                }
+                exit();
+            } else {
+                echo "Invalid password!";
+            }
+        } else {
+            echo "Invalid username!";
+        }
+    } catch (PDOException $e) {
+        echo "Error: " . $e->getMessage();
+    }
 }
 ?>
 
 <!DOCTYPE html>
 <html>
   <head>
-    <title>Login and Registration</title>
+    <title>Login</title>
+    <link href="assets/img/logo/2.png" rel="icon">
     <link href="assets/css/login.css" rel="stylesheet">
-    <script src="script.js"></script>
-
-    <style>
-      button {
-          background-color: green;
-          color: #fff;
-          padding: 10px;
-          border: none;
-          border-radius: 4px;
-          cursor: pointer;
-          width: 100%;
-      }
-
-      button:hover {
-          background-color: green;
-          color: black;
-      }
-    </style>
   </head>
 
   <body>
+  <div class="video-container">
+    <video autoplay muted loop id="bg-video">
+      <source src="assets/img/logo/bg.mp4" type="video/mp4">
+    </video>
+  </div>
+
     <div class="container">
       <div class="form-container">
         <div id="loginContainer">
           <h2>Login</h2>
           <form id="loginForm" action="login.php" method="POST">
-            <input type="text" name="email" placeholder="Email" required>
+            <input type="text" name="username" placeholder="Username" required>
             <input type="password" name="password" placeholder="Password" required>
-            <button type="submit">Login</button>
+            <button type="submit" name="login">Login</button>
           </form>
-          <p>New user? <a href="register.php" id="registerLink">Register here</a></p>
         </div>
       </div>
     </div>
   </body>
 </html>
-

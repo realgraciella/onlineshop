@@ -1,257 +1,194 @@
 <?php
-include('config.php'); // Make sure to include your database connection file
+// Include PDO database connection
+include 'database/db_connect.php';
 
-if ($_SERVER["REQUEST_METHOD"] == "POST") {
-    $productName = $_POST["productName"];
-    $brandName = $_POST["brandName"];
-    $productCategory = $_POST["productCategory"];
-    $price = $_POST["price"];
+// Fetch brands from the database using PDO
+$brands_query = "SELECT * FROM brands";
+$stmt = $pdo->query($brands_query);
 
-    // Handling file upload
-    $target_dir = "uploads/";
-    
-    // Create the "uploads" directory if it doesn't exist
-    if (!file_exists($target_dir)) {
-        mkdir($target_dir, 0777, true);
-    }
+// Handle form submission for product upload
+if (isset($_POST['upload'])) {
+    // Get form data
+    $product_name = $_POST['product_name'];
+    $brand_id = $_POST['brand_id'];
+    $category_id = $_POST['category_id'];
+    $price = $_POST['price'];
+    $stock_level = $_POST['stock_level']; // Get stock level from form
 
-    $target_file = $target_dir . basename($_FILES["productImage"]["name"]);
+    // Handle image upload
+    $target_dir = "uploads/products/";
+    $target_file = $target_dir . basename($_FILES["product_image"]["name"]);
+    $uploadOk = 1;
+    $imageFileType = strtolower(pathinfo($target_file, PATHINFO_EXTENSION));
 
-    if (move_uploaded_file($_FILES["productImage"]["tmp_name"], $target_file)) {
-        // Insert data into the products table
-        $sql = "INSERT INTO products (productName, brandName, productCategory, productPrice, productImage) VALUES ('$productName', '$brandName', '$productCategory', $price, '$target_file')";
-
-        if ($conn->query($sql)) {
-            // Success message
-            echo "Product added successfully!";
-        } else {
-            // Error message
-            echo "Error: " . $sql . "<br>" . $conn->error;
-        }
+    // Validate image
+    $check = getimagesize($_FILES["product_image"]["tmp_name"]);
+    if ($check !== false) {
+        $uploadOk = 1;
     } else {
-        // Error handling for file upload
-        echo "Failed to upload the file.";
+        echo "File is not an image.";
+        $uploadOk = 0;
     }
 
-    // Close the database connection
-    $conn = null;
+    // Check file size (limit to 500KB)
+    if ($_FILES["product_image"]["size"] > 500000) {
+        echo "Sorry, your file is too large.";
+        $uploadOk = 0;
+    }
+
+    // Allow only certain image file formats
+    if (!in_array($imageFileType, ["jpg", "jpeg", "png", "gif"])) {
+        echo "Sorry, only JPG, JPEG, PNG & GIF files are allowed.";
+        $uploadOk = 0;
+    }
+
+    // Upload file and insert product info into database if no errors
+    if ($uploadOk == 1) {
+        if (move_uploaded_file($_FILES["product_image"]["tmp_name"], $target_file)) {
+            try {
+                // Prepare SQL query using PDO to insert product info
+                $sql = "INSERT INTO products (product_name, brand_id, category_id, price, product_image_url, stock_level)
+                        VALUES (:product_name, :brand_id, :category_id, :price, :product_image_url, :stock_level)";
+                $stmt = $pdo->prepare($sql);
+
+                // Bind parameters to the query
+                $stmt->bindParam(':product_name', $product_name);
+                $stmt->bindParam(':brand_id', $brand_id, PDO::PARAM_INT);
+                $stmt->bindParam(':category_id', $category_id, PDO::PARAM_INT);
+                $stmt->bindParam(':price', $price, PDO::PARAM_STR);
+                $stmt->bindParam(':product_image_url', $target_file);
+                $stmt->bindParam(':stock_level', $stock_level, PDO::PARAM_INT); // Bind stock level
+
+                // Execute the query
+                if ($stmt->execute()) {
+                    echo "Product uploaded successfully.";
+                } else {
+                    echo "Error: Could not insert product into the database.";
+                }
+            } catch (PDOException $e) {
+                echo "Error: " . $e->getMessage();
+            }
+        } else {
+            echo "Sorry, there was an error uploading your file.";
+        }
+    }
 }
 ?>
 
-
-
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
-  <meta charset="utf-8">
-  <meta content="width=device-width, initial-scale=1.0" name="viewport">
-
-  <title>Admin Page</title>
-  <meta content="" name="description">
-  <meta content="" name="keywords">
-
-  <!-- Favicons -->
-  <link href="assets/img/favicon.png" rel="icon">
-  <link href="assets/img/apple-touch-icon.png" rel="apple-touch-icon">
-
-  <!-- Google Fonts -->
-  <link href="https://fonts.googleapis.com/css?family=Open+Sans:300,300i,400,400i,600,600i,700,700i|Raleway:300,300i,400,400i,500,500i,600,600i,700,700i|Poppins:300,300i,400,400i,500,500i,600,600i,700,700i" rel="stylesheet">
-
-  <!-- Vendor CSS Files -->
-  <link href="assets/vendor/aos/aos.css" rel="stylesheet">
-  <link href="assets/vendor/bootstrap/css/bootstrap.min.css" rel="stylesheet">
-  <link href="assets/vendor/bootstrap-icons/bootstrap-icons.css" rel="stylesheet">
-  <link href="assets/vendor/boxicons/css/boxicons.min.css" rel="stylesheet">
-  <link href="assets/vendor/glightbox/css/glightbox.min.css" rel="stylesheet">
-  <link href="assets/vendor/remixicon/remixicon.css" rel="stylesheet">
-  <link href="assets/vendor/swiper/swiper-bundle.min.css" rel="stylesheet">
-
-  <!-- Template Main CSS File -->
-  <link href="assets/css/admin.css" rel="stylesheet">
-</head>
-
-<style>
-        .staff-container {
-            margin-bottom: 10px;
-        }
-
-        .container h2 {
-            text-align: center;
-            margin-top: 0px;
-            margin-bottom: 0px;
-        }
-
-        #productForm {
-            max-width: 500px;
-            margin: 100px auto 20px;
-            padding: 20px;
-            border: 2px solid #FFC451;
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin - Add Product</title>
+    <link href="assets/img/logo/2.png" rel="icon">
+    <link href="assets/vendor/bootstrap/css/bootstrap.min.css" rel="stylesheet">
+    <link href="assets/css/admin.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <style>
+        .admin-container {
+            background-color: #ffffff;
+            margin: 75px auto;
+            padding: 25px;
             border-radius: 10px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            max-width: 600px;
         }
-
-        label,
-        input,
-        button {
-            width: 100%;
-            padding: 8px;
-            margin-bottom: 10px;
-            box-sizing: border-box;
+        .form-group {
+            margin-bottom: 15px;
         }
-
-        button[type="submit"] {
-            background-color: #FFC451;
-            color: white;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
+        .form-group label {
+            font-weight: 600;
         }
-
-        button[type="submit"]:hover {
-            color: black;
-            background-color: #FFC451;
-        }
-
-        #brandTable {
-            border-collapse: collapse;
-            width: 100%;
-            margin-top: 20px;
-            border: 2px solid #FFC451;
-            text-align: center;
-        }
-
-        #brandTable th,
-        #brandTable td {
-            border: 1px solid #FFC451;
+        .form-control {
             padding: 10px;
-            text-align: center;
-        }
-
-        #brandTable th {
-            background-color: #FFC451;
-            color: white;
-        }
-
-        .edit-btn {
-            background-color: #B5EAD7;
-            color: white;
-            border: none;
-            padding: 5px 10px;
+            border: 1px solid #ddd;
             border-radius: 5px;
-            cursor: pointer;
-            margin-right: 5px;
         }
-
-        .delete-btn {
-            background-color: #FF7F7F;
+        .btn-primary {
+            background-color: #008a00;
             color: white;
-            border: none;
-            padding: 5px 10px;
+            padding: 12px 18px;
+            width: 100%;
             border-radius: 5px;
-            cursor: pointer;
-            margin-right: 5px;
+            font-size: 15px;
         }
-
-        .delete-btn:hover {
-            color: black;
-            background-color: #FF7F7F;
-        }
-
-        .edit-btn:hover {
-            color: black;
-            background-color: #B5EAD7;
-        }
-    </style>>
-
-
+    </style>
+</head>
 <body>
+<?php include 'admin_header.php'; ?>
 
-  <?php
-    include 'config.php';
-    include 'admin_header.php';
-  ?>
+    <div class="admin-container mt-5">
+        <h2>Add Product</h2>
+        <form action="add_product.php" method="post" enctype="multipart/form-data">
+            <!-- Brand Dropdown -->
+            <div class="form-group">
+                <label for="brand_id">Brand:</label>
+                <select name="brand_id" id="brand_id" class="form-control" onchange="fetchCategories(this.value)" required>
+                    <option value="">Select Brand</option>
+                    <?php while ($brand = $stmt->fetch(PDO::FETCH_ASSOC)) : ?>
+                        <option value="<?php echo $brand['brand_id']; ?>"><?php echo $brand['brand_name']; ?></option>
+                    <?php endwhile; ?>
+                </select>
+            </div>
 
-  <main id="main">
-    <div class="staff-container">
-        <form id="productForm" method="post" action="add_product.php" enctype="multipart/form-data">
-                    <h2>PRODUCTS</h2>
+            <!-- Category Dropdown -->
+            <div class="form-group">
+                <label for="category_id">Category:</label>
+                <select name="category_id" id="category_id" class="form-control" required>
+                    <option value="">Select Category</option>
+                </select>
+            </div>
 
-            <label for="productName">Product Name:</label>
-            <input type="text" id="productName" name="productName" required>
+            <!-- Product Name -->
+            <div class="form-group">
+                <label for="product_name">Product Name:</label>
+                <input type="text" name="product_name" class="form-control" required>
+            </div>
 
-            <label for="brandName">Brand Name:</label>
-            <input type="text" id="brandName" name="brandName" required>
+            <!-- Price -->
+            <div class="form-group">
+                <label for="price">Price:</label>
+                <input type="number" name="price" class="form-control" step="0.01" required>
+            </div>
 
-            <label for="productCategory">Product Category:</label>
-            <input type="text" id="productCategory" name="productCategory" required>
+            <!-- Stock Level -->
+            <div class="form-group">
+                <label for="stock_level">Stock Level:</label>
+                <input type="number" name="stock_level" class="form-control" required min="1">
+            </div>
 
-            <label for="price">Price:</label>
-            <input type="number" id="price" name="price" required>
+            <!-- Product Image -->
+            <div class="form-group">
+                <label for="product_image">Product Image:</label>
+                <input type="file" name="product_image" class="form-control" accept="image/*" required>
+            </div>
 
-            <label for="productImage">Product Image:</label>
-            <input type="file" id="productImage" name="productImage" required>
-
-            <button type="submit">Save</button>
+            <!-- Submit Button -->
+            <button type="submit" name="upload" class="btn btn-primary">Upload Product</button>
         </form>
-
-        <br>
-
-        <table id="brandTable">
-            <thead>
-                <tr>
-                    <th>Product Name</th>
-                    <th>Brand Name</th>
-                    <th>Product Category</th>
-                    <th>Product Price</th>
-                    <th>Product Image</th>
-                    <th>Action</th>
-                </tr>
-            </thead>
-            <tbody>
-                <?php
-                // Assuming $conn is your database connection object
-                $result = $conn->query("SELECT * FROM products");
-                while ($row = $result->fetch(PDO::FETCH_ASSOC)) {
-                    echo "<tr>
-                            <td>{$row['productName']}</td>
-                            <td>{$row['brandName']}</td>
-                            <td>{$row['productCategory']}</td>
-                            <td>{$row['productPrice']}</td>
-                            <td><img src='{$row['productImage']}' alt='Product Image' width='100'></td>
-                            <td class='action-btn-container'>
-                                <button class='edit-btn'>Edit</button>
-                                <br>
-                                <button class='delete-btn'>Delete</button>
-                            </td>
-                        </tr>";
-                }
-                ?>
-            </tbody>
-        </table>
     </div>
 
-  </main><!-- End #main -->
+    <script>
+        // JavaScript to fetch categories based on the selected brand
+        function fetchCategories(brandId) {
+            if (brandId === "") {
+                // If no brand is selected, clear the category dropdown
+                document.getElementById('category_id').innerHTML = "<option value=''>Select Category</option>";
+                return;
+            }
 
-  <?php
-    include 'footer.php';
-  ?>
-
-  <div id="preloader"></div>
-  <a href="#" class="back-to-top d-flex align-items-center justify-content-center"><i class="bi bi-arrow-up-short"></i></a>
-
-  <!-- Vendor JS Files -->
-  <script src="assets/vendor/purecounter/purecounter_vanilla.js"></script>
-  <script src="assets/vendor/aos/aos.js"></script>
-  <script src="assets/vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
-  <script src="assets/vendor/glightbox/js/glightbox.min.js"></script>
-  <script src="assets/vendor/isotope-layout/isotope.pkgd.min.js"></script>
-  <script src="assets/vendor/swiper/swiper-bundle.min.js"></script>
-  <script src="assets/vendor/php-email-form/validate.js"></script>
-
-  <!-- Template Main JS File -->
-  <script src="assets/js/main.js"></script>
-  <script src="assets/js/admin.js"></script>
-
+            var xhr = new XMLHttpRequest();
+            xhr.open("GET", "fetch_categories.php?brand_id=" + brandId, true);
+            xhr.onload = function() {
+                if (xhr.status === 200) {
+                    document.getElementById('category_id').innerHTML = xhr.responseText;
+                } else {
+                    console.log('Error fetching categories:', xhr.status);
+                }
+            };
+            xhr.send();
+        }
+    </script>
 </body>
-
 </html>
