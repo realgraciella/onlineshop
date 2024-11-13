@@ -3,17 +3,18 @@
 include 'database/db_connect.php';
 
 // Fetch brands from the database using PDO
-$brands_query = "SELECT * FROM brands";
+$brands_query = "SELECT * FROM brands ORDER BY brand_name ASC";
 $stmt = $pdo->query($brands_query);
 
 // Handle form submission for product upload
 if (isset($_POST['upload'])) {
     // Get form data
     $product_name = $_POST['product_name'];
+    $product_desc = $_POST['product_desc'];  // Get the product description
     $brand_id = $_POST['brand_id'];
     $category_id = $_POST['category_id'];
     $price = $_POST['price'];
-    $stock_level = $_POST['stock_level']; // Get stock level from form
+    $stock_level = $_POST['stock_level'];
 
     // Handle image upload
     $target_dir = "uploads/products/";
@@ -42,22 +43,23 @@ if (isset($_POST['upload'])) {
         $uploadOk = 0;
     }
 
-    // Upload file and insert product info into database if no errors
+    // Upload file and insert product info into the database if no errors
     if ($uploadOk == 1) {
         if (move_uploaded_file($_FILES["product_image"]["tmp_name"], $target_file)) {
             try {
-                // Prepare SQL query using PDO to insert product info
-                $sql = "INSERT INTO products (product_name, brand_id, category_id, price, product_image_url, stock_level)
-                        VALUES (:product_name, :brand_id, :category_id, :price, :product_image_url, :stock_level)";
+                // Prepare SQL query to insert product info
+                $sql = "INSERT INTO products (product_name, product_desc, brand_id, category_id, price, product_image_url, stock_level)
+                        VALUES (:product_name, :product_desc, :brand_id, :category_id, :price, :product_image_url, :stock_level)";
                 $stmt = $pdo->prepare($sql);
 
                 // Bind parameters to the query
                 $stmt->bindParam(':product_name', $product_name);
+                $stmt->bindParam(':product_desc', $product_desc);  // Bind the product description
                 $stmt->bindParam(':brand_id', $brand_id, PDO::PARAM_INT);
                 $stmt->bindParam(':category_id', $category_id, PDO::PARAM_INT);
                 $stmt->bindParam(':price', $price, PDO::PARAM_STR);
                 $stmt->bindParam(':product_image_url', $target_file);
-                $stmt->bindParam(':stock_level', $stock_level, PDO::PARAM_INT); // Bind stock level
+                $stmt->bindParam(':stock_level', $stock_level, PDO::PARAM_INT);
 
                 // Execute the query
                 if ($stmt->execute()) {
@@ -81,12 +83,12 @@ if (isset($_POST['upload'])) {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Admin - Add Product</title>
-     <!-- Favicons -->
+    <!-- Favicons -->
     <link href="assets/img/logo/2.png" rel="icon">
     <link href="assets/img/apple-touch-icon.png" rel="apple-touch-icon">
 
     <!-- Google Fonts -->
-    <link href="https://fonts.googleapis.com/css?family=Open+Sans:300,300i,400,400i,600,600i,700,700i|Raleway:300,300i,400,400i,500,500i,600,600i,700,700i|Poppins:300,300i,400,400i,500,500i,600,600i,700,700i" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css?family=Open+Sans:300,300i,400,400i,600,600i,700,700i|Raleway:300,300i,400,400i,500,500i,600,600i,700,700i" rel="stylesheet">
 
     <!-- Vendor CSS Files -->
     <link href="assets/vendor/aos/aos.css" rel="stylesheet">
@@ -146,7 +148,7 @@ if (isset($_POST['upload'])) {
                 <select name="brand_id" id="brand_id" class="form-control" onchange="fetchCategories(this.value)" required>
                     <option value="">Select Brand</option>
                     <?php while ($brand = $stmt->fetch(PDO::FETCH_ASSOC)) : ?>
-                        <option value="<?php echo $brand['brand_id']; ?>"><?php echo $brand['brand_name']; ?></option>
+                        <option value="<?php echo $brand['brand_id']; ?>"><?php echo htmlspecialchars($brand['brand_name']); ?></option>
                     <?php endwhile; ?>
                 </select>
             </div>
@@ -163,6 +165,12 @@ if (isset($_POST['upload'])) {
             <div class="form-group">
                 <label for="product_name">Product Name:</label>
                 <input type="text" name="product_name" class="form-control" required>
+            </div>
+
+            <!-- Product Description -->
+            <div class="form-group">
+                <label for="product_desc">Product Description:</label>
+                <textarea name="product_desc" class="form-control" rows="4" required></textarea>
             </div>
 
             <!-- Price -->

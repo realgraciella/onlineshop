@@ -58,8 +58,8 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             $hashed_password = password_hash($password, PASSWORD_DEFAULT);
 
             // Insert client details, including the agent_id from session
-            $sql = "INSERT INTO clients (client_fname, client_mname, client_lname, client_sex, client_age, client_birthdate, client_contact, client_address, client_email, role, agent_creationDate, agent_id)
-                    VALUES (:client_fname, :client_mname, :client_lname, :client_sex, :client_age, :client_birthdate, :client_contact, :client_address, :client_email, 'client', NOW(), :agent_id)";
+            $sql = "INSERT INTO clients (client_fname, client_mname, client_lname, client_sex, client_age, client_birthdate, client_contact, client_address, client_email, role, agent_creationDate, agent_id, client_user)
+                    VALUES (:client_fname, :client_mname, :client_lname, :client_sex, :client_age, :client_birthdate, :client_contact, :client_address, :client_email, 'client', NOW(), :agent_id, :client_user)";
             $stmt = $pdo->prepare($sql);
 
             // Bind parameters for the clients table
@@ -73,6 +73,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             $stmt->bindParam(':client_address', $client_address);
             $stmt->bindParam(':client_email', $client_email);
             $stmt->bindParam(':agent_id', $agent_id); // Use the logged-in agent's ID
+            $stmt->bindParam(':client_user', $client_user); // Store generated username
 
             if ($stmt->execute()) {
                 // Insert login credentials into users table
@@ -114,6 +115,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                 }
 
                 // Redirect to client_view.php after success
+                $_SESSION['success'] = 'Client registered successfully!';
                 header("Location: client_view.php");
                 exit();
             }
@@ -141,6 +143,8 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
   <main id="main">
     <h2 style="text-align: center; margin-top: 90px; margin-bottom: 10px;">CLIENT REGISTRATION</h2>
     <div class="register-client-form">
+        <?php if (isset($_SESSION['error'])) { echo '<div class="alert alert-danger">'.$_SESSION['error'].'</div>'; unset($_SESSION['error']); } ?>
+        <?php if (isset($_SESSION['success'])) { echo '<div class="alert alert-success">'.$_SESSION['success'].'</div>'; unset($_SESSION['success']); } ?>
         <form action="client_register.php" method="POST">
             <label for="fname">First Name:</label>
             <input type="text" id="fname" name="client_fname" required>
@@ -159,7 +163,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             <label for="birthdate">Birthdate:</label>
             <input type="date" id="birthdate" name="client_birthdate" required>
             <label for="contact">Contact Number:</label>
-            <input type="text" id="contact" name="client_contact" pattern="\d*" maxlength="15" required>
+            <input type="tel" id="contact" name="client_contact" pattern="^\d{10,15}$" maxlength="15" required>
             <label for="address">Address:</label>
             <input type="text" id="address" name="client_address" required>
             <label for="email">Email:</label>

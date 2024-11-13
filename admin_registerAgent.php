@@ -74,7 +74,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
             if ($stmt->execute()) {
                 // Insert login credentials into users table
-                $sql_users = "INSERT INTO users (username, password, role) VALUES (:username, :password, 'Sales Agent')";
+                $sql_users = "INSERT INTO users (username, password, email, role) VALUES (:username, :password, :email, 'Sales Agent')";
                 $stmt_users = $pdo->prepare($sql_users);
 
                 // Bind parameters for the users table

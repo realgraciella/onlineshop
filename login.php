@@ -77,8 +77,10 @@ if (isset($_POST['login'])) {
             <input type="password" name="password" placeholder="Password" required>
             <button type="submit" name="login">Login</button>
           </form>
+          <p><a href="forgot_pass.php">Forgot Password?</a></p>
         </div>
       </div>
     </div>
   </body>
 </html>
+

@@ -49,6 +49,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <script defer src="assets/vendor/glightbox/js/glightbox.min.js"></script>
     <script defer src="assets/vendor/swiper/swiper-bundle.min.js"></script>
     <script defer src="assets/js/admin.js"></script>
+
     <style>
         body {
             font-family: 'Poppins', sans-serif;
@@ -71,21 +72,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             font-size: 24px;
             color: #333;
         }
-        .table {
-            border-collapse: collapse;
-            width: 100%;
-            margin-bottom: 20px;
-        }
         .table th {
             background-color: #4CAF50;
             text-align: center;
             padding: 12px;
             color: white;
-            border-bottom: 2px solid #dee2e6;
         }
         .table td {
             padding: 12px;
             border-bottom: 1px solid #dee2e6;
+            text-align: center;
         }
         .comment-form textarea {
             width: 100%;
@@ -93,6 +89,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             margin-top: 5px;
             border: 1px solid #ced4da;
             border-radius: 4px;
+            resize: vertical;
         }
         .comment-form button {
             margin-top: 8px;
@@ -105,90 +102,107 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         .comment-form button:hover {
             background-color: #0056b3;
         }
+        @media (max-width: 768px) {
+            .table th, .table td {
+                font-size: 14px;
+                padding: 8px;
+            }
+            .inquiry-section h2 {
+                font-size: 20px;
+            }
+        }
     </style>
 </head>
 <body>
   <?php include 'admin_header.php'; ?>
 
-    <div class="inquiry-container">
+    <div class="container inquiry-container">
         <h1 class="text-center mb-4">Inquiries Management</h1>
 
         <!-- Client Inquiries Section -->
         <div class="inquiry-section">
             <h2>Client Inquiries</h2>
-            <table class="table">
-                <thead class="table-light">
-                    <tr>
-                        <th>Name</th>
-                        <th>Email</th>
-                        <th>Message</th>
-                        <th>Date</th>
-                        <th>Admin Response</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <?php if (count($clientInquiries) > 0): ?>
-                        <?php foreach ($clientInquiries as $inquiry): ?>
-                            <tr>
-                                <td><?php echo htmlspecialchars($inquiry['name']); ?></td>
-                                <td><?php echo htmlspecialchars($inquiry['email']); ?></td>
-                                <td><?php echo htmlspecialchars($inquiry['message']); ?></td>
-                                <td><?php echo htmlspecialchars($inquiry['date_created']); ?></td>
-                                <td>
-                                    <form method="POST" class="comment-form">
-                                        <input type="hidden" name="inquiry_id" value="<?php echo $inquiry['id']; ?>">
-                                        <input type="hidden" name="inquiry_type" value="client">
-                                        <textarea name="comment" rows="2" placeholder="Add a comment..." required></textarea>
-                                        <button type="submit" class="btn btn-primary btn-sm mt-2">Submit</button>
-                                    </form>
-                                </td>
-                            </tr>
-                        <?php endforeach; ?>
-                    <?php else: ?>
+            <div class="table-responsive">
+                <table class="table table-bordered">
+                    <thead>
                         <tr>
-                            <td colspan="5" class="text-center">No client inquiries found.</td>
+                            <th>Name</th>
+                            <th>Email</th>
+                            <th>Subject</th>
+                            <th>Message</th>
+                            <th>Date</th>
+                            <th>Admin Response</th>
                         </tr>
-                    <?php endif; ?>
-                </tbody>
-            </table>
+                    </thead>
+                    <tbody>
+                        <?php if (count($clientInquiries) > 0): ?>
+                            <?php foreach ($clientInquiries as $inquiry): ?>
+                                <tr>
+                                    <td><?php echo htmlspecialchars($inquiry['name']); ?></td>
+                                    <td><?php echo htmlspecialchars($inquiry['email']); ?></td>
+                                    <td><?php echo htmlspecialchars($inquiry['subject']); ?></td>
+                                    <td><?php echo htmlspecialchars($inquiry['message']); ?></td>
+                                    <td><?php echo htmlspecialchars($inquiry['date_created']); ?></td>
+                                    <td>
+                                        <form method="POST" class="comment-form">
+                                            <input type="hidden" name="inquiry_id" value="<?php echo $inquiry['id']; ?>">
+                                            <input type="hidden" name="inquiry_type" value="client">
+                                            <textarea name="comment" rows="2" placeholder="Add a comment..." required></textarea>
+                                            <button type="submit" class="btn btn-primary btn-sm mt-2">Submit</button>
+                                        </form>
+                                    </td>
+                                </tr>
+                            <?php endforeach; ?>
+                        <?php else: ?>
+                            <tr>
+                                <td colspan="6" class="text-center">No client inquiries found.</td>
+                            </tr>
+                        <?php endif; ?>
+                    </tbody>
+                </table>
+            </div>
         </div>
 
         <!-- Agent Inquiries Section -->
         <div class="inquiry-section">
             <h2>Agent Inquiries</h2>
-            <table class="table">
-                <thead class="table-light">
-                    <tr>
-                        <th>Agent Name</th>
-                        <th>Message</th>
-                        <th>Date</th>
-                        <th>Admin Response</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <?php if (count($agentInquiries) > 0): ?>
-                        <?php foreach ($agentInquiries as $inquiry): ?>
-                            <tr>
-                                <td><?php echo htmlspecialchars($inquiry['agent_fname']) . ' ' . htmlspecialchars($inquiry['agent_lname']); ?></td>
-                                <td><?php echo htmlspecialchars($inquiry['message']); ?></td>
-                                <td><?php echo htmlspecialchars($inquiry['date_created']); ?></td>
-                                <td>
-                                    <form method="POST" class="comment-form">
-                                        <input type="hidden" name="inquiry_id" value="<?php echo $inquiry['id']; ?>">
-                                        <input type="hidden" name="inquiry_type" value="agent">
-                                        <textarea name="comment" rows="2" placeholder="Add a comment..." required></textarea>
-                                        <button type="submit" class="btn btn-primary btn-sm mt-2">Submit</button>
-                                    </form>
-                                </td>
-                            </tr>
-                        <?php endforeach; ?>
-                    <?php else: ?>
+            <div class="table-responsive">
+                <table class="table table-bordered">
+                    <thead>
                         <tr>
-                            <td colspan="4" class="text-center">No agent inquiries found.</td>
+                            <th>Agent Name</th>
+                            <th>Subject</th>
+                            <th>Message</th>
+                            <th>Date</th>
+                            <th>Admin Response</th>
                         </tr>
-                    <?php endif; ?>
-                </tbody>
-            </table>
+                    </thead>
+                    <tbody>
+                        <?php if (count($agentInquiries) > 0): ?>
+                            <?php foreach ($agentInquiries as $inquiry): ?>
+                                <tr>
+                                    <td><?php echo htmlspecialchars($inquiry['agent_fname']) . ' ' . htmlspecialchars($inquiry['agent_lname']); ?></td>
+                                    <td><?php echo htmlspecialchars($inquiry['subject']); ?></td>
+                                    <td><?php echo htmlspecialchars($inquiry['message']); ?></td>
+                                    <td><?php echo htmlspecialchars($inquiry['date_created']); ?></td>
+                                    <td>
+                                        <form method="POST" class="comment-form">
+                                            <input type="hidden" name="inquiry_id" value="<?php echo $inquiry['id']; ?>">
+                                            <input type="hidden" name="inquiry_type" value="agent">
+                                            <textarea name="comment" rows="2" placeholder="Add a comment..." required></textarea>
+                                            <button type="submit" class="btn btn-primary btn-sm mt-2">Submit</button>
+                                        </form>
+                                    </td>
+                                </tr>
+                            <?php endforeach; ?>
+                        <?php else: ?>
+                            <tr>
+                                <td colspan="5" class="text-center">No agent inquiries found.</td>
+                            </tr>
+                        <?php endif; ?>
+                    </tbody>
+                </table>
+            </div>
         </div>
     </div>
 </body>
