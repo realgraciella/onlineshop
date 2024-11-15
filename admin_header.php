@@ -29,8 +29,9 @@
           </li>
           <li class='dropdown'><a href='#'><span>ORDERS</span></a>
             <ul>
-              <li ><a href='admin_registerAgent.php'><span>Order List</span></a></li>
-              <li ><a href='admin_viewAgent.php'><span>Wishlist</span></a></li>
+              <li ><a href='admin_.php'><span>Order List</span></a></li>
+              <li ><a href='admin_.php'><span>Wishlist</span></a></li>
+              <li ><a href='admin_.php'><span>Check Out</span></a></li>
             </ul>
           </li>         
           <li class='dropdown'><a href='#'><span>MESSAGES</span></a>

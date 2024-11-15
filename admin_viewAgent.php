@@ -138,14 +138,14 @@ include 'database/db_connect.php';
     </div>
 </main>
 
-<script>
+<!-- <script>
     function promptForPin(action, agentId) {
         const pin = prompt("Please enter the admin PIN to continue:");
         if (pin) {
             window.location.href = `admin_${action}_agent.php?id=${agentId}&pin=${pin}`;
         }
     }
-</script>
+</script> -->
 
 <!-- Vendor JS Files -->
 <script src="assets/vendor/bootstrap/js/bootstrap.bundle.min.js"></script>

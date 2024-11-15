@@ -29,12 +29,12 @@ $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
     <script defer src="assets/js/admin.js"></script>
 
     <style>
-        body {
+        /* body {
             font-family: 'Roboto', sans-serif;
             background-color: #f4f7fc;
             margin: 0;
             padding: 0;
-        }
+        } */
 
         h2 {
             text-align: center;
@@ -96,7 +96,7 @@ $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
             background-color: #45a049;
         }
 
-        #priceModal {
+        #priceModal, #stockModal {
             display: none;
             position: fixed;
             top: 50%;
@@ -110,13 +110,13 @@ $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
             z-index: 1000;
         }
 
-        #priceModal h3 {
+        #priceModal h3, #stockModal h3 {
             margin-top: 0;
             text-align: center;
             color: #333;
         }
 
-        #priceModal input[type="number"] {
+        #priceModal input[type="number"], #stockModal input[type="number"] {
             width: 100%;
             padding: 10px;
             margin-bottom: 15px;
@@ -125,7 +125,7 @@ $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
             font-size: 16px;
         }
 
-        #priceModal label {
+        #priceModal label, #stockModal label {
             font-size: 16px;
             color: #333;
         }
@@ -157,7 +157,6 @@ $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
             background-color: rgba(0, 0, 0, 0.4);
             z-index: 999;
         }
-
     </style>
 </head>
 <body>
@@ -199,6 +198,9 @@ $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
                         <td><?= htmlspecialchars($product['stock_level']) ?></td>
                         <td>
                             <button class="btn" onclick="showPriceForm(<?= $product['product_id'] ?>, <?= $product['price'] ?>, <?= $product['on_sale'] ?>)">Modify Price</button>
+                            <?php if ($product['stock_level'] < 5) : ?>
+                                <button class="btn" onclick="showStockForm(<?= $product['product_id'] ?>, <?= $product['stock_level'] ?>)">Re-stock</button>
+                            <?php endif; ?>
                         </td>
                     </tr>
                 <?php endforeach; ?>
@@ -206,7 +208,7 @@ $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
         </table>
     </div>
 
-    <!-- Modal -->
+    <!-- Price Modal -->
     <div id="priceModal">
         <h3>Modify Price</h3>
         <form id="priceForm" method="POST">
@@ -226,8 +228,24 @@ $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
         </form>
     </div>
 
+    <!-- Stock Modal -->
+    <div id="stockModal">
+        <h3>Modify Stock Level</h3>
+        <form id="stockForm" method="POST">
+            <input type="hidden" name="product_id" id="stock_product_id">
+            <div>
+                <label for="new_stock">New Stock Level:</label>
+                <input type="number" name="new_stock" id="new_stock" required min="0">
+            </div>
+            <div class="modal-btn-container">
+                <button type="submit" class="btn">Save Changes</button>
+                <button type="button" class="btn cancel-btn" onclick="closeStockForm()">Cancel</button>
+            </div>
+        </form>
+    </div>
+
     <!-- Modal Overlay -->
-    <div id="modalOverlay" class="modal-overlay" onclick="closePriceForm()"></div>
+    <div id="modalOverlay" class="modal-overlay" onclick="closePriceForm(); closeStockForm()"></div>
 
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script>
@@ -244,35 +262,17 @@ $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
             document.getElementById('modalOverlay').style.display = 'none';
         }
 
-        document.getElementById('priceForm').onsubmit = function(e) {
-            e.preventDefault();
-            let productId = document.getElementById('product_id').value;
-            let newPrice = document.getElementById('new_price').value;
-            let onSale = document.getElementById('on_sale').checked;
+        function showStockForm(productId, currentStock) {
+            document.getElementById('stock_product_id').value = productId;
+            document.getElementById('new_stock').value = currentStock;
+            document.getElementById('stockModal').style.display = 'block';
+            document.getElementById('modalOverlay').style.display = 'block';
+        }
 
-            let xhr = new XMLHttpRequest();
-            xhr.open("POST", "update_price.php", true);
-            xhr.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
-            xhr.onload = function() {
-                if (xhr.status === 200) {
-                    Swal.fire({
-                        title: 'Success!',
-                        text: 'The product price has been updated.',
-                        icon: 'success',
-                        confirmButtonText: 'OK'
-                    });
-                    location.reload();
-                } else {
-                    Swal.fire({
-                        title: 'Error!',
-                        text: 'There was an error updating the price.',
-                        icon: 'error',
-                        confirmButtonText: 'Try Again'
-                    });
-                }
-            };
-            xhr.send("product_id=" + productId + "&new_price=" + newPrice + "&on_sale=" + (onSale ? 1 : 0));
-        };
+        function closeStockForm() {
+            document.getElementById('stockModal').style.display = 'none';
+            document.getElementById('modalOverlay').style.display = 'none';
+        }
     </script>
 </body>
 </html>

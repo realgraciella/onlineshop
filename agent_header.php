@@ -16,13 +16,20 @@
               
             </ul>
           </li>
-          <li class='dropdown'><a href='#'><span>CLIENT</span></a>
+          <li class='dropdown'><a href='#'><span>CUSTOMERS</span></a>
             <ul>
-              <li ><a href='agent_registerClient.php'><span>Add Client</span></a></li>
-              <li ><a href='agent_viewClient.php'><span>View Client</span></a></li>
-              <li ><a href='agent_clientInfo.php'><span>Client Information</span></a></li>
+              <li ><a href='agent_registerClient.php'><span>Add Customer</span></a></li>
+              <li ><a href='agent_viewClient.php'><span>View Customer</span></a></li>
+              <li ><a href='agent_clientInfo.php'><span>Customer Information</span></a></li>
             </ul>
-          </li>         
+          </li>
+          <li class='dropdown'><a href='#'><span>ORDERS</span></a>
+            <ul>
+              <li ><a href='agent_cart.php'><span>Cart</span></a></li>
+              <li ><a href='agent_viewClient.php'><span>Orders</span></a></li>
+              <li ><a href='agent_clientInfo.php'><span>Customer Order</span></a></li>
+            </ul>
+          </li>          
           <li class='dropdown'><a href='#'><span>MESSAGES</span></a>
             <ul>
               <li ><a href='agent_view_inquiries.php'><span>Inbox</span></a></li>
@@ -31,8 +38,8 @@
           </li>
           <li class='dropdown'><a href='#'><span>PROFILE</span></a>
             <ul>
-              <li ><a href='#'><span>Change Password</span></a></li>
-              <li ><a href='#'><span>Logout</span></a></li>
+              <li ><a href='reset_pass.php'><span>Change Password</span></a></li>
+              <li ><a href='login.php'><span>Logout</span></a></li>
             </ul>
           </li>
         </ul>

@@ -34,7 +34,7 @@ $stmt = $pdo->query($sql);
     <link href="assets/vendor/swiper/swiper-bundle.min.css" rel="stylesheet">
 
     <!-- Template Main CSS File -->
-    <link href="assets/css/admin.css" rel="stylesheet">
+    <link href="assets/css/agent.css" rel="stylesheet">
 </head>
 <body>
     <?php include 'agent_header.php'; ?>
