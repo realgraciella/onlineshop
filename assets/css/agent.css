@@ -256,7 +256,7 @@ h6 {
 .navbar .dropdown ul a:hover,
 .navbar .dropdown ul .active:hover,
 .navbar .dropdown ul li:hover>a {
-  background-color: #325032;
+  background-color: #c6eec6;
 }
 
 .navbar .dropdown:hover>ul {
@@ -292,7 +292,7 @@ h6 {
 * Mobile Navigation 
 */
 .mobile-nav-toggle {
-  color: #fff;
+  color: #000000;
   font-size: 28px;
   cursor: pointer;
   display: none;
@@ -352,7 +352,7 @@ h6 {
 .navbar-mobile .active,
 .navbar-mobile li:hover>a {
   color: #151515;
-  background-color: #325032;
+  background-color: #c6eec6;
 }
 
 .navbar-mobile .getstarted,
