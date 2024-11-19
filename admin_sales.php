@@ -1,11 +1,46 @@
 <?php
 include 'database/db_connect.php';
 
-// Queries to fetch sales data
+// Combined queries to fetch sales data from both the `sales` and `store_sales` tables
 $queries = [
-    'weekly' => "SELECT SUM(sale_amount) AS total_sales, WEEK(sale_date) AS week FROM sales WHERE sale_date >= CURDATE() - INTERVAL 1 WEEK GROUP BY week ORDER BY week DESC",
-    'monthly' => "SELECT SUM(sale_amount) AS total_sales, MONTH(sale_date) AS month FROM sales WHERE sale_date >= CURDATE() - INTERVAL 1 MONTH GROUP BY month ORDER BY month DESC",
-    'annually' => "SELECT SUM(sale_amount) AS total_sales, YEAR(sale_date) AS year FROM sales WHERE sale_date >= CURDATE() - INTERVAL 1 YEAR GROUP BY year ORDER BY year DESC"
+    'weekly' => "
+        SELECT SUM(total_sales) AS total_sales, week FROM (
+            SELECT SUM(sale_amount) AS total_sales, WEEK(sale_date) AS week FROM sales 
+            WHERE sale_date >= CURDATE() - INTERVAL 1 WEEK 
+            GROUP BY week
+            UNION ALL
+            SELECT SUM(total_amount) AS total_sales, WEEK(sale_date) AS week FROM store_sales 
+            WHERE sale_date >= CURDATE() - INTERVAL 1 WEEK 
+            GROUP BY week
+        ) AS combined_sales
+        GROUP BY week
+        ORDER BY week DESC",
+        
+    'monthly' => "
+        SELECT SUM(total_sales) AS total_sales, month FROM (
+            SELECT SUM(sale_amount) AS total_sales, MONTH(sale_date) AS month FROM sales 
+            WHERE sale_date >= CURDATE() - INTERVAL 1 MONTH 
+            GROUP BY month
+            UNION ALL
+            SELECT SUM(total_amount) AS total_sales, MONTH(sale_date) AS month FROM store_sales 
+            WHERE sale_date >= CURDATE() - INTERVAL 1 MONTH 
+            GROUP BY month
+        ) AS combined_sales
+        GROUP BY month
+        ORDER BY month DESC",
+        
+    'annually' => "
+        SELECT SUM(total_sales) AS total_sales, year FROM (
+            SELECT SUM(sale_amount) AS total_sales, YEAR(sale_date) AS year FROM sales 
+            WHERE sale_date >= CURDATE() - INTERVAL 1 YEAR 
+            GROUP BY year
+            UNION ALL
+            SELECT SUM(total_amount) AS total_sales, YEAR(sale_date) AS year FROM store_sales 
+            WHERE sale_date >= CURDATE() - INTERVAL 1 YEAR 
+            GROUP BY year
+        ) AS combined_sales
+        GROUP BY year
+        ORDER BY year DESC"
 ];
 
 // Prepare and execute queries
@@ -122,10 +157,9 @@ foreach ($queries as $period => $query) {
 <?php include 'admin_header.php'; ?>
     <div class="sales-container">
         <h1>Sales Data</h1>
-
         <button class="print-btn" onclick="window.print()">Print Sales Data</button>
 
-        <!-- Weekly Sales Data -->
+        <!-- Weekly Combined Sales Data -->
         <h2>Sales This Week</h2>
         <table>
             <thead>
@@ -144,7 +178,7 @@ foreach ($queries as $period => $query) {
             </tbody>
         </table>
 
-        <!-- Monthly Sales Data -->
+        <!-- Monthly Combined Sales Data -->
         <h2>Sales This Month</h2>
         <table>
             <thead>
@@ -163,7 +197,7 @@ foreach ($queries as $period => $query) {
             </tbody>
         </table>
 
-        <!-- Annual Sales Data -->
+        <!-- Annual Combined Sales Data -->
         <h2>Sales This Year</h2>
         <table>
             <thead>
@@ -185,3 +219,4 @@ foreach ($queries as $period => $query) {
 </body>
 
 </html>
+

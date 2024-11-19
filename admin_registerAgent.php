@@ -15,12 +15,14 @@ ob_start();
 $registration_success = false;
 $duplicate_contact = false;
 
-// Include PHPMailer classes
+// Include PHPMailer classes (commented out for now)
+/* 
 use PHPMailer\PHPMailer\PHPMailer;
 use PHPMailer\PHPMailer\Exception;
 require 'includes/PHPMailer/src/Exception.php';
 require 'includes/PHPMailer/src/PHPMailer.php';
 require 'includes/PHPMailer/src/SMTP.php';
+*/
 
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
     // Collect form data
@@ -56,8 +58,8 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             $agent_user = "AGT-" . substr($agent_fname, 0, 2) . rand(1000, 9999);
             $password = bin2hex(random_bytes(5)); // Generate a random password
 
-            // Hash the password
-            $hashed_password = password_hash($password, PASSWORD_DEFAULT);
+            // Directly store the password in plain text (no hashing)
+            $plain_password = $password;
 
             // Insert agent details
             $sql = "INSERT INTO agents (agent_fname, agent_mname, agent_lname, agent_sex, agent_age, agent_birthdate, agent_contact, agent_address, agent_validID, agent_email, id_front_image, id_back_image, role, agent_status, agent_creationDate) 
@@ -79,15 +81,17 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             $stmt->bindParam(':id_back_image', $id_back_data, PDO::PARAM_LOB);
 
             if ($stmt->execute()) {
-                // Insert login credentials into users table
+                // Insert login credentials into users table with plain text password
                 $sql_users = "INSERT INTO users (username, password, role) VALUES (:username, :password, 'Sales Agent')";
                 $stmt_users = $pdo->prepare($sql_users);
 
                 // Bind parameters for the users table
                 $stmt_users->bindParam(':username', $agent_user);
-                $stmt_users->bindParam(':password', $hashed_password);
+                $stmt_users->bindParam(':password', $plain_password); // Use plain password
                 $stmt_users->execute();
-                
+
+                // PHPMailer disabled for now
+                /*
                 // Send email to the agent
                 $mail = new PHPMailer(true);
                 try {
@@ -110,6 +114,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                 } catch (Exception $e) {
                     error_log("PHPMailer Exception: {$mail->ErrorInfo}");
                 }
+                */
 
                 // Redirect to admin_viewAgent.php after success
                 $_SESSION['success'] = 'Agent registered successfully!';
@@ -173,18 +178,29 @@ ob_end_flush();
                 <option value="National ID">National ID</option>
                 <option value="Other">Other</option>
             </select>
-            <div id="otherIdWrapper" style="display: none;">
-                <label for="other_id_type">Specify Other ID Type:</label>
-                <input type="text" id="other_id_type" name="other_id_type">
+            <div id="otherIdField" style="display:none;">
+                <label for="otherId">Specify Other ID:</label>
+                <input type="text" id="otherId" name="agent_validID_other" placeholder="Specify other ID">
             </div>
-            <label for="id_front">ID Front Picture:</label>
+            <label for="id_front">Upload Front of ID:</label>
             <input type="file" id="id_front" name="agent_id_front" accept="image/*" required>
-            <label for="id_back">ID Back Picture:</label>
+            <label for="id_back">Upload Back of ID:</label>
             <input type="file" id="id_back" name="agent_id_back" accept="image/*" required>
-            <input type="submit" value="Register Agent">
+            <button type="submit">Register Agent</button>
         </form>
     </div>
   </main>
 
+  <script>
+    function toggleOtherIdField() {
+        const selectElement = document.getElementById('validID');
+        const otherIdField = document.getElementById('otherIdField');
+        if (selectElement.value === 'Other') {
+            otherIdField.style.display = 'block';
+        } else {
+            otherIdField.style.display = 'none';
+        }
+    }
+  </script>
 </body>
 </html>

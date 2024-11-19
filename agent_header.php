@@ -11,7 +11,7 @@
       <nav id="navbar" class="navbar order-last order-lg-0">
         <ul>
           <li><a class="nav-link scrollto " href="agent.php">HOME</a></li>
-          <li class='dropdown'><a href='#'><span>BROCHURE</span></a>
+          <li class='dropdown'><a href='agent_products.php'><span>BROCHURE</span></a>
             <ul>
               
             </ul>
@@ -33,7 +33,7 @@
           <li class='dropdown'><a href='#'><span>MESSAGES</span></a>
             <ul>
               <li ><a href='agent_view_inquiries.php'><span>Inbox</span></a></li>
-              <li ><a href='agent_view_feedbacks.php'><span>Feedbacks</span></a></li>
+              <li ><a href='agent_inquire.php'><span>Message</span></a></li>
             </ul>
           </li>
           <li class='dropdown'><a href='#'><span>PROFILE</span></a>

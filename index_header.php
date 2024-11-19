@@ -14,7 +14,7 @@
         <i class="bi bi-list mobile-nav-toggle"></i>
       </nav><!-- .navbar -->
 
-      <a href="login.php" class="login-btn scrollto" style="background-color: rgba(0, 0, 0, 0.2);">Login</a>
+      <a href="login.php" class="btn btn-outline-primary custom-btn">Login</a>
 
     </div>
   </header><!-- End Header -->

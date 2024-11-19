@@ -6,22 +6,58 @@ include 'database/db_connect.php'; // Database connection
 
 // Combined database query to optimize data fetching
 $query = "
+    -- Top Agent with highest sales
     SELECT agent_fname, agent_lname, SUM(quantity * price) AS total_sales 
     FROM agents 
     JOIN sales ON agents.agent_id = sales.agent_id 
     GROUP BY agents.agent_id 
     ORDER BY total_sales DESC LIMIT 1;
 
+    -- Active agents count
     SELECT COUNT(*) AS active_agents_count FROM agents WHERE agent_status = 'active';
 
-    SELECT SUM(sale_amount) AS weekly_sales FROM sales WHERE sale_date >= CURDATE() - INTERVAL 7 DAY;
+    -- Weekly sales (from both sales and store_sales tables)
+    SELECT 
+        SUM(sale_amount) AS weekly_sales 
+    FROM sales 
+    WHERE sale_date >= CURDATE() - INTERVAL 7 DAY;
 
+    SELECT 
+        SUM(total_amount) AS weekly_store_sales 
+    FROM store_sales 
+    WHERE sale_date >= CURDATE() - INTERVAL 7 DAY;
+
+    -- Monthly sales (from both sales and store_sales tables)
+    SELECT 
+        SUM(sale_amount) AS monthly_sales 
+    FROM sales 
+    WHERE sale_date >= CURDATE() - INTERVAL 1 MONTH;
+
+    SELECT 
+        SUM(total_amount) AS monthly_store_sales 
+    FROM store_sales 
+    WHERE sale_date >= CURDATE() - INTERVAL 1 MONTH;
+
+    -- Annual sales (from both sales and store_sales tables)
+    SELECT 
+        SUM(sale_amount) AS annual_sales 
+    FROM sales 
+    WHERE sale_date >= CURDATE() - INTERVAL 1 YEAR;
+
+    SELECT 
+        SUM(total_amount) AS annual_store_sales 
+    FROM store_sales 
+    WHERE sale_date >= CURDATE() - INTERVAL 1 YEAR;
+
+    -- Low stock count
     SELECT COUNT(*) AS low_stock_count FROM products WHERE stock_level < 10;
 
+    -- Total feedback count (product and system feedback)
     SELECT 
         (SELECT COUNT(*) FROM product_feedback) + 
         (SELECT COUNT(*) FROM system_feedback) AS total_feedbacks_count;
 
+    -- Total inquiries count (client and agent inquiries)
     SELECT 
         (SELECT COUNT(*) FROM client_inquiries) + 
         (SELECT COUNT(*) FROM agent_inquiries) AS total_inquiries_count;
@@ -37,6 +73,16 @@ $stmt->nextRowset();
 $activeAgentsCount = $stmt->fetchColumn();
 $stmt->nextRowset();
 $weeklySales = $stmt->fetchColumn() ?: 0;
+$stmt->nextRowset();
+$weeklyStoreSales = $stmt->fetchColumn() ?: 0;
+$stmt->nextRowset();
+$monthlySales = $stmt->fetchColumn() ?: 0;
+$stmt->nextRowset();
+$monthlyStoreSales = $stmt->fetchColumn() ?: 0;
+$stmt->nextRowset();
+$annualSales = $stmt->fetchColumn() ?: 0;
+$stmt->nextRowset();
+$annualStoreSales = $stmt->fetchColumn() ?: 0;
 $stmt->nextRowset();
 $lowStockCount = $stmt->fetchColumn();
 $stmt->nextRowset();
@@ -110,6 +156,19 @@ $totalInquiriesCount = $stmt->fetchColumn();
     .grid-item button:hover {
             background-color: #008a00;
     }
+    .footer {
+            padding: 20px;
+            text-align: center;
+            background-color: #f8f9fa;
+            position: fixed;
+            width: 100%;
+            bottom: 0;
+        }
+
+        .footer p {
+            margin: 0;
+            font-size: 14px;
+        }
   </style>
 </head>
 
@@ -120,31 +179,56 @@ $totalInquiriesCount = $stmt->fetchColumn();
     <section id="dashboard">
       <h2>DASHBOARD</h2>
       <div class="grid-container">
+          <!-- Top Agent -->
           <div class="grid-item top-agent">
               <h3>Top Agent</h3>
               <p><?php echo htmlspecialchars($topAgentName); ?> with the highest sales</p>
               <a href="admin_topAgent.php"><button>View</button></a>
           </div>
+
+          <!-- Active Agents -->
           <div class="grid-item active-agent">
               <h3>Active Agents</h3>
               <p><?php echo (int)$activeAgentsCount; ?> active agents</p>
               <a href="admin_viewAgent.php"><button>View</button></a>
           </div>
-          <div class="grid-item sales">
-              <h3>Sales</h3>
-              <p><?php echo (int)$weeklySales; ?> total sales this week</p>
+
+          <!-- Weekly Sales -->
+          <div class="grid-item weekly-sales">
+              <h3>Weekly Sales</h3>
+              <p><?php echo (int)($weeklySales + $weeklyStoreSales); ?> total sales this week</p>
               <a href="admin_sales.php"><button>View</button></a>
           </div>
+
+          <!-- Monthly Sales -->
+          <div class="grid-item monthly-sales">
+              <h3>Monthly Sales</h3>
+              <p><?php echo (int)($monthlySales + $monthlyStoreSales); ?> total sales this month</p>
+              <a href="admin_sales.php"><button>View</button></a>
+          </div>
+
+          <!-- Annual Sales -->
+          <div class="grid-item annual-sales">
+              <h3>Annual Sales</h3>
+              <p><?php echo (int)($annualSales + $annualStoreSales); ?> total sales this year</p>
+              <a href="admin_sales.php"><button>View</button></a>
+          </div>
+
+          <!-- Inventory (Low Stock) -->
           <div class="grid-item inventory">
               <h3>Inventory</h3>
               <p><?php echo (int)$lowStockCount; ?> products with low stock</p>
               <a href="admin_inventory.php"><button>View</button></a>
           </div>
+
+          <!-- Feedbacks -->
           <div class="grid-item feedbacks">
               <h3>Feedbacks</h3>
               <p><?php echo (int)$totalFeedbacksCount; ?> total feedbacks</p>
               <a href="admin_viewFeedbacks.php"><button>View</button></a>
           </div>
+
+          <!-- Inquiries -->
           <div class="grid-item inquiries">
               <h3>Inquiries</h3>
               <p><?php echo (int)$totalInquiriesCount; ?> total inquiries</p>
@@ -153,5 +237,11 @@ $totalInquiriesCount = $stmt->fetchColumn();
       </div>
     </section>
   </main>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <p>&copy; 2024 Your Company. All rights reserved.</p>
+  </footer>
 </body>
+
 </html>

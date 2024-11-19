@@ -778,87 +778,72 @@ section {
   padding: 0;
 }
 
-/*--------------------------------------------------------------
-# Counts
---------------------------------------------------------------*/
-.counts .content {
-  padding: 30px 0;
+/* Registration Form */
+.add-agent-form {
+  max-width: 800px;
+  margin: 40px auto;
+  padding: 30px;
+  background-color: #f8f9fa;
+  border-radius: 10px;
+  box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
 }
 
-.counts .content h3 {
-  font-weight: 700;
-  font-size: 34px;
-  color: #151515;
+.add-agent-form form {
+  display: flex;
+  flex-direction: column;
 }
 
-.counts .content p {
-  margin-bottom: 0;
-}
-
-.counts .content .count-box {
-  padding: 20px 0;
-  width: 100%;
-}
-
-.counts .content .count-box i {
-  display: block;
-  font-size: 36px;
-  color: #008a00;
-  float: left;
-}
-
-.counts .content .count-box span {
-  font-size: 36px;
-  line-height: 30px;
-  display: block;
-  font-weight: 700;
-  color: #151515;
-  margin-left: 50px;
-}
-
-.counts .content .count-box p {
-  padding: 15px 0 0 0;
-  margin: 0 0 0 50px;
-  font-family: "Raleway", sans-serif;
-  font-size: 14px;
-  color: #3b3b3b;
-}
-
-.counts .content .count-box a {
+.add-agent-form label {
   font-weight: 600;
-  display: block;
-  margin-top: 20px;
-  color: #3b3b3b;
-  font-size: 15px;
-  font-family: "Poppins", sans-serif;
-  transition: ease-in-out 0.3s;
+  color: #333;
+  margin-bottom: 5px;
 }
 
-.counts .content .count-box a:hover {
-  color: #325032;
+.add-agent-form input[type="text"],
+.add-agent-form input[type="number"],
+.add-agent-form input[type="email"],
+.add-agent-form input[type="date"],
+.add-agent-form input[type="file"],
+.add-agent-form select {
+  width: 100%;
+  padding: 12px;
+  margin-bottom: 15px;
+  border: 1px solid #ced4da;
+  border-radius: 5px;
+  font-size: 16px;
+  transition: border-color 0.3s ease;
 }
 
-.counts .image {
-  background: url("../img/counts-img.jpg") center center no-repeat;
-  background-size: cover;
-  min-height: 400px;
+.add-agent-form input[type="text"]:focus,
+.add-agent-form input[type="number"]:focus,
+.add-agent-form input[type="email"]:focus,
+.add-agent-form input[type="date"]:focus,
+.add-agent-form input[type="file"]:focus,
+.add-agent-form select:focus {
+  border-color: #000000;
+  outline: none;
 }
 
-@media (max-width: 991px) {
-  .counts .image {
-    text-align: center;
-  }
-
-  .counts .image img {
-    max-width: 80%;
-  }
+.add-agent-form button {
+  background-color: #4CAF50;
+  color: #fff;
+  border: none;
+  padding: 12px;
+  font-size: 18px;
+  font-weight: 600;
+  cursor: pointer;
+  border-radius: 5px;
+  transition: background-color 0.3s ease;
 }
 
-@media (max-width: 667px) {
-  .counts .image img {
-    max-width: 100%;
-  }
+.add-agent-form button:hover {
+  background-color: #008a00;
 }
+
+.add-agent-form .alert {
+  margin-bottom: 20px;
+}
+
 
 
 /*--------------------------------------------------------------

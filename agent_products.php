@@ -167,7 +167,7 @@ $connection->close();
     </style>
 </head>
 <body>
-    <?php include 'admin_header.php'; ?>
+    <?php include 'agent_header.php'; ?>
 
     <div class="display-container">
         <div class="row">

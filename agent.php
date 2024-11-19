@@ -38,13 +38,13 @@
       font-size: 16px; /* Adjust font size as needed */
       padding: 10px 20px; /* Adjust padding as needed */
       transition: all 0.3s ease-in-out;
-      }
+    }
 
-      .custom-btn:hover {
-       background-color: #008a00;
-       color: #fff;
-       }
-   </style>
+    .custom-btn:hover {
+      background-color: #008a00;
+      color: #fff;
+    }
+  </style>
 </head>
 
 <body>
@@ -116,17 +116,20 @@
           while ($product = $stmt->fetch(PDO::FETCH_ASSOC)) {
             $brandClass = strtolower($product['brand_name']);
             $imagePath = 'uploads/products/' . $product['product_image_url'];
+
+            // Check if product image exists, if not use default
             if (!file_exists($imagePath)) {
-              $imagePath = 'assets/img/default-image.png'; // Fallback image if product image is missing
+              $imagePath = 'assets/img/default-image.png';
             }
+            
             echo '
             <div class="col-lg-4 col-md-6 portfolio-item filter-' . $brandClass . '">
               <div class="portfolio-wrap">
-                <img src="uploads/products/' . $product['product_image_url'] . '" class="img-fluid" alt="Product Image">
+                <img src="' . $imagePath . '" class="img-fluid" alt="Product Image">
                 <div class="portfolio-info">
                   <h4>' . htmlspecialchars($product['brand_name']) . '</h4>
                   <p>' . htmlspecialchars($product['product_desc']) . '</p>
-                  <p><strong>Price: PHP ' . htmlspecialchars($product['price']) . '</strong></p>
+                  <p><strong>Price: PHP ' . number_format(htmlspecialchars($product['price']), 2) . '</strong></p>
                   <div class="btn-group mt-3">
                     <button class="btn btn-primary add-to-cart" data-product-id="' . $product['product_id'] . '">Add to Cart</button>
                     <button class="btn btn-success buy-now" data-product-id="' . $product['product_id'] . '">Buy Now</button>
@@ -144,7 +147,6 @@
         <div class="text-center mt-5">
           <a href="agent_products.php" class="btn btn-outline-primary custom-btn">See More Products</a>
         </div>
-
 
       </div>
     </section>
