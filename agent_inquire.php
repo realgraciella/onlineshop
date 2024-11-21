@@ -186,7 +186,7 @@ $system_feedbacks = $system_feedback_stmt->fetchAll(PDO::FETCH_ASSOC);
 </head>
 
 <body>
-<?php include 'admin_header.php'; ?>
+<?php include 'agent_header.php'; ?>
 
     <div class="feedback-container">
         <h1>Product and System Feedback</h1>

@@ -6,7 +6,7 @@
   <header id="header" class="fixed-top header-inner-pages">
     <div class="container d-flex align-items-center justify-content-lg-between">
 
-    <a href="admin.php" class="logo me-auto me-lg-0"><img src="assets\img\logo\l1.png" alt="" class="img-fluid"></a>
+    <a href="agent.php" class="logo me-auto me-lg-0"><img src="assets\img\logo\l1.png" alt="" class="img-fluid"></a>
 
       <nav id="navbar" class="navbar order-last order-lg-0">
         <ul>
@@ -26,8 +26,8 @@
           <li class='dropdown'><a href='#'><span>ORDERS</span></a>
             <ul>
               <li ><a href='agent_cart.php'><span>Cart</span></a></li>
-              <li ><a href='agent_viewClient.php'><span>Orders</span></a></li>
-              <li ><a href='agent_clientInfo.php'><span>Customer Order</span></a></li>
+              <li ><a href='agent_orders.php'><span>Orders</span></a></li>
+              <li ><a href='agent_.php'><span>Customer Order</span></a></li>
             </ul>
           </li>          
           <li class='dropdown'><a href='#'><span>MESSAGES</span></a>

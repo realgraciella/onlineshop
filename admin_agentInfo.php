@@ -17,10 +17,10 @@ try {
     // Execute the query
     $stmt->execute();
 
-    // Fetch the result
-    $row = $stmt->fetch(PDO::FETCH_ASSOC);
+    // Fetch all results
+    $agents = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-    if (!$row) {
+    if (empty($agents)) {
         echo "<p>No agent found with the provided search term.</p>";
     }
 
@@ -169,7 +169,7 @@ try {
 
         <form action="#" method="post">
             <section>
-                <?php if ($row): ?>
+                <?php if ($agents): ?>
                     <table class="table">
                         <tr>
                             <th>Agent ID</th>
@@ -183,6 +183,7 @@ try {
                             <th>Role</th>
                             <th>Status</th>
                         </tr>
+                        <?php foreach ($agents as $row): ?>
                         <tr>
                             <td><?= htmlspecialchars($row['agent_id']); ?></td>
                             <td><?= htmlspecialchars($row['agent_fname']); ?></td>
@@ -195,11 +196,8 @@ try {
                             <td><?= htmlspecialchars($row['role']); ?></td>
                             <td><?= htmlspecialchars($row['agent_status']); ?></td>
                         </tr>
+                        <?php endforeach; ?>
                     </table>
-
-                    <div style="text-align: center; margin-top: 20px;">
-                        <a href="edit_agent.php?agent_id=<?= htmlspecialchars($row['agent_id']); ?>" class="edit-button">Edit</a>
-                    </div>
                 <?php endif; ?>
             </section>
         </form>

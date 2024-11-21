@@ -240,7 +240,7 @@ $totalInquiriesCount = $stmt->fetchColumn();
 
   <!-- Footer -->
   <footer class="footer">
-    <p>&copy; 2024 Your Company. All rights reserved.</p>
+    <p>&copy; 2024 DMshop. All rights reserved.</p>
   </footer>
 </body>
 

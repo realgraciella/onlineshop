@@ -194,7 +194,7 @@ $connection->close();
                                     <h4><?php echo htmlspecialchars($product['product_name']); ?></h4>
                                     <p>Category: <?php echo htmlspecialchars($product['category_name']); ?></p>
                                     <p>Price: <span class="text-decoration-line-through">$<?php echo number_format($product['old_price'], 2); ?></span> $<?php echo number_format($product['price'], 2); ?></p>
-                                    <button type="button" class="btn btn-success">Add to Cart</button>
+                                    <button type="button" class="btn btn-success" onclick="addToCart('<?php echo $product['product_id']; ?>')">Add to Cart</button>
                                     <button type="button" class="btn btn-warning">Buy Now</button>
                                 </div>
                             <?php endforeach; ?>
@@ -219,75 +219,70 @@ $connection->close();
                             </div>
                         <?php endforeach; ?>
                     <?php else : ?>
-                        <p>No products available.</p>
+                        <p>No products found.</p>
                     <?php endif; ?>
                 </div>
             </div>
 
-            <!-- Filters Section -->
+            <!-- Filter Section -->
             <div class="col-md-3">
                 <div class="filter-section">
-                    <h3>Filter Products by Brand</h3>
-                    <form id="brand-filter-form">
-                        <?php if (count($brands) > 0) : ?>
-                            <?php foreach ($brands as $brand) : ?>
-                                <label>
-                                    <input type="checkbox" name="brand" value="<?php echo $brand['brand_name']; ?>" class="form-check-input">
-                                    <?php echo htmlspecialchars($brand['brand_name']); ?>
-                                </label>
-                            <?php endforeach; ?>
-                        <?php endif; ?>
-                        <div class="text-center">
-                            <button type="button" class="btn btn-success" onclick="applyFilters()">Apply Filters</button>
-                            <button type="button" class="btn btn-danger" onclick="clearFilters()">Clear Filters</button>
-                        </div>
-                    </form>
+                    <h3>Filter Products</h3>
+                    <label class="form-check-label">
+                        <input class="form-check-input" type="checkbox" value="" id="filter-by-brand" onclick="applyFilters()"> By Brand
+                    </label>
+                    <div id="brand-filters" style="display:none;">
+                        <?php foreach ($brands as $brand) : ?>
+                            <label class="form-check-label">
+                                <input class="form-check-input" type="checkbox" value="<?php echo $brand['brand_id']; ?>" onclick="applyFilters()"> <?php echo htmlspecialchars($brand['brand_name']); ?>
+                            </label><br>
+                        <?php endforeach; ?>
+                    </div>
+
+                    <button type="button" class="btn btn-success">Apply Filters</button>
+                    <button type="button" class="btn btn-danger">Clear Filters</button>
                 </div>
             </div>
         </div>
     </div>
 
-    <script src="assets/vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
+    <!-- JS Scripts -->
+    <script src="assets/vendor/jquery/jquery.min.js"></script>
     <script>
-        function toggleFilterSection() {
-            const filterSection = document.querySelector('.filter-section');
-            filterSection.style.display = (filterSection.style.display === 'block') ? 'none' : 'block';
-        }
-
+        // Filter products by name
         function filterProducts() {
-            const searchQuery = document.getElementById('search-bar').value.toLowerCase();
-            const productItems = document.querySelectorAll('.product-item');
+            let searchQuery = document.getElementById('search-bar').value.toLowerCase();
+            let products = document.querySelectorAll('.product-item');
 
-            productItems.forEach(item => {
-                const name = item.getAttribute('data-name');
-                if (name.includes(searchQuery)) {
-                    item.style.display = 'block';
+            products.forEach(product => {
+                let productName = product.getAttribute('data-name');
+                if (productName.includes(searchQuery)) {
+                    product.style.display = 'block';
                 } else {
-                    item.style.display = 'none';
+                    product.style.display = 'none';
                 }
             });
         }
 
-        function applyFilters() {
-            const checkboxes = document.querySelectorAll('input[name="brand"]:checked');
-            const selectedBrands = Array.from(checkboxes).map(checkbox => checkbox.value.toLowerCase());
-            const productItems = document.querySelectorAll('.product-item');
-
-            productItems.forEach(item => {
-                const name = item.getAttribute('data-name');
-                const matchesBrand = selectedBrands.length === 0 || selectedBrands.some(brand => name.includes(brand));
-                item.style.display = matchesBrand ? 'block' : 'none';
-            });
+        // Toggle the visibility of the filter section
+        function toggleFilterSection() {
+            const filterSection = document.querySelector('.filter-section');
+            filterSection.style.display = (filterSection.style.display === 'none') ? 'block' : 'none';
         }
 
-        function clearFilters() {
-            const checkboxes = document.querySelectorAll('input[name="brand"]');
-            checkboxes.forEach(checkbox => checkbox.checked = false);
-            applyFilters();
-        }
-
+        // Add product to cart using AJAX
         function addToCart(productId) {
-            alert('Added to cart: ' + productId);
+            const xhr = new XMLHttpRequest();
+            xhr.open('POST', 'add_to_cart.php', true);
+            xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+            xhr.onload = function() {
+                if (xhr.status === 200) {
+                    alert('Product added to cart');
+                } else {
+                    alert('Error adding product to cart');
+                }
+            };
+            xhr.send('product_id=' + productId);
         }
     </script>
 </body>

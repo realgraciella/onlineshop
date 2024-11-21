@@ -40,7 +40,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             $plain_password = $password;
 
             // Insert client details into clients table
-            $sql = "INSERT INTO clients (client_fname, client_mname, client_lname, client_sex, client_age, client_birthdate, client_contact, client_address, client_email, role, agent_creationDate, agent_id, client_user)
+            $sql = "INSERT INTO clients (client_fname, client_mname, client_lname, client_sex, client_age, client_birthdate, client_contact, client_address, client_email, role, client_creationDate, agent_id, client_user)
                     VALUES (:client_fname, :client_mname, :client_lname, :client_sex, :client_age, :client_birthdate, :client_contact, :client_address, :client_email, 'client', NOW(), :agent_id, :client_user)";
             $stmt = $pdo->prepare($sql);
 
@@ -70,7 +70,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
                 // Redirect to client_view.php after success
                 $_SESSION['success'] = 'Client registered successfully!';
-                header("Location: client_view.php");
+                header("Location: agent_viewClient.php");
                 exit();
             }
         } catch (PDOException $e) {
