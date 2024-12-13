@@ -294,6 +294,45 @@ if ($cartItems && $_SERVER['REQUEST_METHOD'] == 'POST') {
                 gcashFields.style.display = 'none';
             }
         }
+
+        function updateCheckoutList() {
+    const checkoutListDiv = document.getElementById('checkoutList');
+    checkoutListDiv.innerHTML = '';
+
+    let totalPrice = 0; // Initialize total price
+
+    checkoutList.forEach(item => {
+        const productDiv = document.createElement('div');
+        productDiv.classList.add('checkout-item');
+        productDiv.innerHTML = `
+            <span>${item.productName} (Variation: ${item.variation}, Quantity: ${item.quantity}, Price: PHP ${item.price.toFixed(2)})</span>
+            <button onclick="removeFromList('${item.productName}')">Remove</button>
+        `;
+        checkoutListDiv.appendChild(productDiv);
+
+        // Calculate total price
+        totalPrice += item.price * item.quantity; // Multiply price by quantity
+    });
+
+    // Display total price
+    const totalDiv = document.createElement('div');
+    totalDiv.classList.add('checkout-item');
+    totalDiv.innerHTML = `<strong>Total Price: PHP ${totalPrice.toFixed(2)}</strong>`;
+    checkoutListDiv.appendChild(totalDiv);
+}
+
+function checkout() {
+    // Prepare data to send to the server
+    const checkoutData = checkoutList.map(item => ({
+        product_name: item.productName,
+        quantity: item.quantity,
+        variation_id: item.variation // Assuming you stored variation_id in the checkoutList
+    }));
+
+    // Redirect to checkout.php with the checkout data
+    const queryString = new URLSearchParams({ data: JSON.stringify(checkoutData) }).toString();
+    window.location.href = `checkout.php?${queryString}`;
+}
     </script>
 
 </body>

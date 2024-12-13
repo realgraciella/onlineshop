@@ -6,12 +6,14 @@ include 'database/db_connect.php'; // Database connection
 
 // Combined database query to optimize data fetching
 $query = "
-    -- Top Agent with highest sales
-    SELECT agent_fname, agent_lname, SUM(quantity * price) AS total_sales 
+    -- Top 3 Agents with highest sales in the last month
+    SELECT agent_fname, agent_lname, SUM(sale_amount) AS total_sales 
     FROM agents 
     JOIN sales ON agents.agent_id = sales.agent_id 
+    WHERE sale_date >= CURDATE() - INTERVAL 1 MONTH
     GROUP BY agents.agent_id 
-    ORDER BY total_sales DESC LIMIT 1;
+    HAVING total_sales > 0
+    ORDER BY total_sales DESC LIMIT 3;
 
     -- Active agents count
     SELECT COUNT(*) AS active_agents_count FROM agents WHERE agent_status = 'active';
@@ -50,7 +52,10 @@ $query = "
     WHERE sale_date >= CURDATE() - INTERVAL 1 YEAR;
 
     -- Low stock count
-    SELECT COUNT(*) AS low_stock_count FROM products WHERE stock_level < 10;
+    SELECT product_name, stock_level FROM products WHERE stock_level < 10;
+
+    -- Recent purchases
+    SELECT product_name, purchase_date FROM purchases ORDER BY purchase_date DESC LIMIT 5;
 
     -- Total feedback count (product and system feedback)
     SELECT 
@@ -67,8 +72,10 @@ $stmt = $pdo->prepare($query);
 $stmt->execute();
 
 // Fetching results for each query result set
-$topAgent = $stmt->fetch(PDO::FETCH_ASSOC);
-$topAgentName = $topAgent ? $topAgent['agent_fname'] . ' ' . $topAgent['agent_lname'] : 'No data';
+$topAgents = [];
+while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+    $topAgents[] = $row;
+}
 $stmt->nextRowset();
 $activeAgentsCount = $stmt->fetchColumn();
 $stmt->nextRowset();
@@ -84,7 +91,15 @@ $annualSales = $stmt->fetchColumn() ?: 0;
 $stmt->nextRowset();
 $annualStoreSales = $stmt->fetchColumn() ?: 0;
 $stmt->nextRowset();
-$lowStockCount = $stmt->fetchColumn();
+$lowStockProducts = [];
+while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+    $lowStockProducts[] = $row;
+}
+$stmt->nextRowset();
+$recentPurchases = [];
+while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+    $recentPurchases[] = $row;
+}
 $stmt->nextRowset();
 $totalFeedbacksCount = $stmt->fetchColumn();
 $stmt->nextRowset();
@@ -105,9 +120,10 @@ $totalInquiriesCount = $stmt->fetchColumn();
   <!-- Minified CSS -->
   <link href="assets/vendor/bootstrap/css/bootstrap.min.css" rel="stylesheet">
   <link href="assets/css/admin.css" rel="stylesheet"> <!-- Ensure minified CSS -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
   <!-- Deferred JS loading -->
-  <script defer src="assets/vendor/purecounter/purecounter_vanilla.js"></script>
+  <script defer src="assets/vendor/pure counter/purecounter_vanilla.js"></script>
   <script defer src="assets/vendor/aos/aos.js"></script>
   <script defer src="assets/vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
   <script defer src="assets/vendor/glightbox/js/glightbox.min.js"></script>
@@ -125,50 +141,57 @@ $totalInquiriesCount = $stmt->fetchColumn();
         text-align: center;
         margin: 50px auto;
     }
-    .grid-container {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-        gap: 20px;
+    .sales-chart {
+        width: 100%;
+        max-width: 1000px;
+        margin: 20px auto;
     }
-    .grid-item {
+    .metric {
         background: #fff;
         border-radius: 10px;
         padding: 25px;
         box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
-        transition: box-shadow 0.3s ease;
-        display: flex;
-        flex-direction: column;
-        justify-content: space-between;
-    }
-    .grid-item:hover {
-        box-shadow: 0 8px 15px rgba(0, 0, 0, 0.15);
-    }
-    .grid-item button {
-        border: none;
-        padding: 10px 20px;
-        border-radius: 5px;
-        font-weight: 500;
-        color: #fff;
-        background-color: #4CAF50;
-        transition: background-color 0.3s ease;
-        align-self: flex-end;
-    }
-    .grid-item button:hover {
-            background-color: #008a00;
+        margin: 20px 0;
     }
     .footer {
-            padding: 20px;
-            text-align: center;
-            background-color: #f8f9fa;
-            position: fixed;
-            width: 100%;
-            bottom: 0;
-        }
-
-        .footer p {
-            margin: 0;
-            font-size: 14px;
-        }
+        padding: 20px;
+        text-align: center;
+        background-color: #f8f9fa;
+        position: fixed;
+        width: 100%;
+        bottom: 0;
+    }
+    .footer p {
+        margin: 0;
+        font-size: 14px;
+    }
+    .card {
+        margin: 20px;
+        padding: 20px;
+        border-radius: 10px;
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+    }
+    .card-body {
+        padding: 20px;
+    }
+    .card-title {
+        font-size: 24px;
+        font-weight: bold;
+        margin-bottom: 10px;
+    }
+    .card-text {
+        font-size: 18px;
+        margin-bottom: 20px;
+    }
+    .leaderboard, .low-stock, .recent-purchases {
+        margin: 20px;
+        padding: 20px;
+        border-radius: 10px;
+        background: #fff;
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+        overflow-y: auto;
+        max-height: 200px; /* Set a max height for scrollable area */
+    }
   </style>
 </head>
 
@@ -178,70 +201,127 @@ $totalInquiriesCount = $stmt->fetchColumn();
   <main id="main">
     <section id="dashboard">
       <h2>DASHBOARD</h2>
-      <div class="grid-container">
-          <!-- Top Agent -->
-          <div class="grid-item top-agent">
-              <h3>Top Agent</h3>
-              <p><?php echo htmlspecialchars($topAgentName); ?> with the highest sales</p>
-              <a href="admin_topAgent.php"><button>View</button></a>
+      <div class="container">
+        <div class="row">
+          <div class="col-md-3">
+            <div class="metric">
+              <h5>Weekly Sales</h5>
+              <p><?php echo (int)($weeklySales + $weeklyStoreSales); ?></p>
+            </div>
           </div>
-
-          <!-- Active Agents -->
-          <div class="grid-item active-agent">
-              <h3>Active Agents</h3>
-              <p><?php echo (int)$activeAgentsCount; ?> active agents</p>
-              <a href="admin_viewAgent.php"><button>View</button></a>
+          <div class="col-md-3">
+            <div class="metric">
+              <h5>Monthly Sales</h5>
+              <p><?php echo (int)($monthlySales + $monthlyStoreSales); ?></p>
+            </div>
           </div>
-
-          <!-- Weekly Sales -->
-          <div class="grid-item weekly-sales">
-              <h3>Weekly Sales</h3>
-              <p><?php echo (int)($weeklySales + $weeklyStoreSales); ?> total sales this week</p>
-              <a href="admin_sales.php"><button>View</button></a>
+          <div class="col-md-3">
+            <div class="metric">
+              <h5>Annual Sales</h5>
+              <p><?php echo (int)($annualSales + $annualStoreSales); ?></p>
+            </div>
           </div>
-
-          <!-- Monthly Sales -->
-          <div class="grid-item monthly-sales">
-              <h3>Monthly Sales</h3>
-              <p><?php echo (int)($monthlySales + $monthlyStoreSales); ?> total sales this month</p>
-              <a href="admin_sales.php"><button>View</button></a>
+          <div class="col-md-3">
+            <div class="metric">
+              <h5>Active Agents</h5>
+              <p><?php echo (int)$activeAgentsCount; ?></p>
+            </div>
           </div>
-
-          <!-- Annual Sales -->
-          <div class="grid-item annual-sales">
-              <h3>Annual Sales</h3>
-              <p><?php echo (int)($annualSales + $annualStoreSales); ?> total sales this year</p>
-              <a href="admin_sales.php"><button>View</button></a>
+        </div>
+        <div class="row">
+          <div class="col-md-8">
+            <div class="sales-chart">
+              <h3>Sales Overview</h3>
+              <select id="salesFilter" class="form-select" aria-label="Sales Filter">
+                  <option value="weekly">Weekly</option>
+                  <option value="monthly">Monthly</option>
+                  <option value="annual">Annual</option>
+              </select>
+              <canvas id="salesLineChart"></canvas>
+            </div>
           </div>
-
-          <!-- Inventory (Low Stock) -->
-          <div class="grid-item inventory">
-              <h3>Inventory</h3>
-              <p><?php echo (int)$lowStockCount; ?> products with low stock</p>
-              <a href="admin_inventory.php"><button>View</button></a>
+          <div class="col-md-4">
+            <div class="leaderboard">
+              <h5>Top 3 Agents</h5>
+              <ul class="list-group">
+                <?php foreach ($topAgents as $agent): ?>
+                  <li class="list-group-item">
+                    <?php echo htmlspecialchars($agent['agent_fname'] . ' ' . $agent['agent_lname']); ?> - 
+                    <?php echo (int)$agent['total_sales']; ?>
+                  </li>
+                <?php endforeach; ?>
+              </ul>
+            </div>
+            <div class="low-stock">
+              <h5>Low Stock Products</h5>
+              <ul class="list-group">
+                <?php foreach ($lowStockProducts as $product): ?>
+                  <li class="list-group-item">
+                    <?php echo htmlspecialchars($product['product_name']); ?> - 
+                    <?php echo (int)$product['stock_level']; ?>
+                  </li>
+                <?php endforeach; ?>
+              </ul>
+            </div>
+            <div class="recent-purchases">
+              <h5>Recent Purchases</h5>
+              <ul class="list-group">
+                <?php foreach ($recentPurchases as $purchase): ?>
+                  <li class="list-group-item">
+                    <?php echo htmlspecialchars($purchase['product_name']); ?> - 
+                    <?php echo date('Y-m-d', strtotime($purchase['purchase_date'])); ?>
+                  </li>
+                <?php endforeach; ?>
+              </ul>
+            </div>
           </div>
-
-          <!-- Feedbacks -->
-          <div class="grid-item feedbacks">
-              <h3>Feedbacks</h3>
-              <p><?php echo (int)$totalFeedbacksCount; ?> total feedbacks</p>
-              <a href="admin_viewFeedbacks.php"><button>View</button></a>
-          </div>
-
-          <!-- Inquiries -->
-          <div class="grid-item inquiries">
-              <h3>Inquiries</h3>
-              <p><?php echo (int)$totalInquiriesCount; ?> total inquiries</p>
-              <a href="admin_viewInquiries.php"><button>View</button></a>
-          </div>
+        </div>
       </div>
     </section>
   </main>
 
   <!-- Footer -->
   <footer class="footer">
-    <p>&copy; 2024 DMshop. All rights reserved.</p>
+    <p>&copy; 2024 Your Company. All rights reserved.</p>
   </footer>
+
+  <script>
+    const salesData = {
+        weekly: [<?php echo (int)($weeklySales + $weeklyStoreSales); ?>],
+        monthly: [<?php echo (int)($monthlySales + $monthlyStoreSales); ?>],
+        annual: [<?php echo (int)($annualSales + $annualStoreSales); ?>]
+    };
+
+    const ctx = document.getElementById('salesLineChart').getContext('2d');
+    let salesLineChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: ['Sales'],
+            datasets: [{
+                label: 'Sales',
+                data: salesData.weekly,
+                borderColor: 'rgba(75, 192, 192, 1)',
+                backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                borderWidth: 2,
+                fill: true
+            }]
+        },
+        options: {
+            responsive: true,
+            scales: {
+                y: {
+                    beginAtZero: true
+                }
+            }
+        }
+    });
+
+    document.getElementById('salesFilter').addEventListener('change', function() {
+        const selectedValue = this.value;
+        salesLineChart.data.datasets[0].data = salesData[selectedValue];
+        salesLineChart.update();
+    });
+  </script>
 </body>
 
 </html>

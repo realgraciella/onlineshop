@@ -11,41 +11,72 @@ if ($conn->connect_error) {
     die("Connection failed: " . $conn->connect_error);
 }
 
-// Update payment status when modified by admin
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['payment_status'], $_POST['order_id'])) {
-    $payment_status = $_POST['payment_status'];
-    $order_id = $_POST['order_id'];
+// Initialize search variable
+$search_query = '';
 
-    $update_query = "UPDATE orders SET payment_status = ? WHERE order_id = ?";
-    $stmt = $conn->prepare($update_query);
-    $stmt->bind_param('si', $payment_status, $order_id);
-
-    if ($stmt->execute()) {
-        echo "<script>alert('Payment status updated successfully!');</script>";
-    } else {
-        echo "<script>alert('Error updating payment status: " . $conn->error . "');</script>";
-    }
-
-    $stmt->close();
+// Check if the search form is submitted
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['search'])) {
+    $search_query = $_POST['search'];
 }
 
-// Fetch the order details
+// Check if the form is submitted for printing receipt
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    if (isset($_POST['print_receipt'])) {
+        $order_id = $_POST['order_id'];
+        $payment_status = "Paid"; // Set payment status to "Paid"
+
+        $update_query = "UPDATE orders SET payment_status = ? WHERE order_id = ?";
+        $stmt = $conn->prepare($update_query);
+        $stmt->bind_param('si', $payment_status, $order_id);
+
+        if ($stmt->execute()) {
+            // Redirect to the receipt page
+            header("Location: print_receipt.php?order_id=" . $order_id);
+            exit();
+        } else {
+            echo "<script>alert('Error updating payment status: " . $conn->error . "');</script>";
+        }
+
+        $stmt->close();
+    } elseif (isset($_POST['order_id'])) {
+        // Handle order status update
+        $order_id = $_POST['order_id'];
+        $order_status = $_POST['order_status'];
+
+        $update_status_query = "UPDATE orders SET order_status = ? WHERE order_id = ?";
+        $stmt = $conn->prepare($update_status_query);
+        $stmt->bind_param('si', $order_status, $order_id);
+        $stmt->execute();
+        $stmt->close();
+    }
+}
+
+// Fetch the order details with search functionality
 $sql = "
     SELECT 
         o.order_id, 
         o.username, 
         o.name, 
+        o.items, 
         o.total_amount, 
         o.order_date, 
         o.order_status, 
-        o.shipping_address, 
         o.payment_method, 
         o.payment_status
     FROM 
         orders o
+    WHERE 
+        o.username LIKE ? OR 
+        o.name LIKE ? OR 
+        o.order_id LIKE ?
     ORDER BY 
         o.username, o.order_date";
-$result = $conn->query($sql);
+
+$stmt = $conn->prepare($sql);
+$search_param = '%' . $search_query . '%';
+$stmt->bind_param('ssi', $search_param, $search_param, $search_param);
+$stmt->execute();
+$result = $stmt->get_result();
 ?>
 
 <!DOCTYPE html>
@@ -54,10 +85,8 @@ $result = $conn->query($sql);
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Admin Order List</title>
-    <!-- Favicons -->
     <link href="assets/img/logo/2.png" rel="icon">
-    <link href="assets/img/apple-touch-icon.png" rel="apple-touch-icon">
-
+    
     <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css?family=Open+Sans:300,400,600,700|Poppins:300,400,500,600,700" rel="stylesheet">
 
@@ -72,21 +101,51 @@ $result = $conn->query($sql);
 
     <!-- Template Main CSS File -->
     <link href="assets/css/admin.css" rel="stylesheet">
+
+    <style>
+        h2 {
+            margin-top: 80px auto;
+            margin-left: auto;
+            margin-right: auto;
+            text-align: center;
+        }
+        .status-pending {
+            color: #ffe165;
+        }
+        .status-processing {
+            color: #1490a6;
+        }
+        .status-completed {
+            color: #4CAF50;
+        }
+        .status-cancelled {
+            color: #f44336;
+        }
+    </style>
 </head>
 <body>
 <?php include 'admin_header.php'; ?>
-<div class="container mt-5">
+ <div class="container mt-5">
     <h2>Order List</h2>
+
+    <!-- Search Form -->
+    <form method="post" class="mb-3">
+        <div class="input-group">
+            <input type="text" name="search" class="form-control" placeholder="Search by Order ID, Username, or Name" value="<?php echo htmlspecialchars($search_query); ?>">
+            <button class="btn btn-primary" type="submit">Search</button>
+        </div>
+    </form>
+
     <table class="table table-bordered">
         <thead>
             <tr>
                 <th>Order ID</th>
                 <th>Username</th>
                 <th>Name</th>
+                <th>Items</th>
                 <th>Total Amount</th>
                 <th>Order Date</th>
                 <th>Order Status</th>
-                <th>Shipping Address</th>
                 <th>Payment Method</th>
                 <th>Payment Status</th>
                 <th>Action</th>
@@ -100,23 +159,18 @@ $result = $conn->query($sql);
                     echo "<td>" . htmlspecialchars($row['order_id']) . "</td>";
                     echo "<td>" . htmlspecialchars($row['username']) . "</td>";
                     echo "<td>" . htmlspecialchars($row['name']) . "</td>";
+                    echo "<td>" . htmlspecialchars($row['items']) . "</td>";
                     echo "<td>" . number_format($row['total_amount'], 2) . "</td>";
                     echo "<td>" . htmlspecialchars($row['order_date']) . "</td>";
-                    echo "<td>";
-                    echo "<form method='post'>";
-                    echo "<select name='order_status' class='form-control' onchange='this.form.submit()'>";
-                    echo "<option value='Pending'" . ($row['order_status'] === 'Pending' ? ' selected' : '') . ">Pending</option>";
-                    echo "<option value='Processing'" . ($row['order_status'] === 'Processing' ? ' selected' : '') . ">Processing</option>";
-                    echo "<option value='Completed'" . ($row['order_status'] === 'Completed' ? ' selected' : '') . ">Completed</option>";
-                    echo "<option value='Cancelled'" . ($row['order_status'] === 'Cancelled' ? ' selected' : '') . ">Cancelled</option>";
-                    echo "</select>";
-                    echo "<input type='hidden' name='order_id' value='" . htmlspecialchars($row['order_id']) . "' />";
-                    echo "</form>";
-                    echo "</td>";
-                    echo "<td>" . htmlspecialchars($row['shipping_address']) . "</td>";
+                    echo "<td class='status-" . strtolower($row['order_status']) . "'>" . htmlspecialchars($row['order_status']) . "</td>";
                     echo "<td>" . htmlspecialchars($row['payment_method']) . "</td>";
                     echo "<td>" . htmlspecialchars($row['payment_status']) . "</td>";
-                    echo "<td><button class='btn btn-primary' data-toggle='modal' data-target='#modifyPaymentModal' data-order-id='" . $row['order_id'] . "' data-payment-status='" . $row['payment_status'] . "'>Modify</button></td>";
+                    echo "<td>";
+                    echo "<form method='post' action=''>";
+                    echo "<input type='hidden' name='order_id' value='" . htmlspecialchars($row['order_id']) . "' />";
+                    echo "<button class='btn btn-success' type='submit' name='print_receipt'>Print Receipt</button>";
+                    echo "</form>";
+                    echo "</td>";
                     echo "</tr>";
                 }
             } else {
@@ -127,35 +181,6 @@ $result = $conn->query($sql);
     </table>
 </div>
 
-<!-- Modify Payment Status Modal -->
-<div class="modal fade" id="modifyPaymentModal" tabindex="-1" aria-labelledby="modifyPaymentModalLabel" aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <form method="post">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="modifyPaymentModalLabel">Modify Payment Status</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body">
-                    <input type="hidden" name="order_id" id="modal-order-id">
-                    <div class="form-group">
-                        <label for="payment-status">Payment Status</label>
-                        <select name="payment_status" id="modal-payment-status" class="form-control">
-                            <option value="Unpaid">Unpaid</option>
-                            <option value="Pending">Pending</option>
-                            <option value="Partial Payment">Partial Payment</option>
-                            <option value="Complete Payment">Complete Payment</option>
-                        </select>
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                    <button type="submit" class="btn btn-primary">Save Changes</button>
-                </div>
-            </form>
-        </div>
-    </div>
-</div>
 
 <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.5.2/dist/umd/popper.min.js"></script>
@@ -172,7 +197,3 @@ $result = $conn->query($sql);
 </script>
 </body>
 </html>
-
-<?php
-$conn->close();
-?>

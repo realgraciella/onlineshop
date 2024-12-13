@@ -1,6 +1,11 @@
 
 <?php
     include 'database/db_connect.php';
+
+    $query = "SELECT products.*, categories.category_name FROM products JOIN categories ON products.category_id = categories.category_id";
+    $stmt = $pdo->prepare($query);
+    $stmt->execute();
+    $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
 ?>
 
 <!DOCTYPE html>
@@ -35,9 +40,9 @@
     .custom-btn {
       border-color: #008a00;
       color: #008a00;
-      font-family: 'Poppins', sans-serif; /* You can change this to any font you prefer */
-      font-size: 16px; /* Adjust font size as needed */
-      padding: 10px 20px; /* Adjust padding as needed */
+      font-family: 'Poppins', sans-serif; 
+      font-size: 16px; 
+      padding: 10px 20px;
       transition: all 0.3s ease-in-out;
     }
 
@@ -94,11 +99,11 @@
             <ul id="portfolio-flters">
               <li data-filter="*" class="filter-active">All</li>
               <?php
-              $query = "SELECT DISTINCT brand_name FROM brands";
+              $query = "SELECT brand_id, brand_name FROM brands";
               $stmt = $pdo->prepare($query);
               $stmt->execute();
               while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
-                echo '<li data-filter=".filter-' . strtolower($row['brand_name']) . '">' . strtoupper($row['brand_name']) . '</li>';
+                echo '<li data-filter=".filter-' . $row['brand_id'] . '">' . htmlspecialchars($row['brand_name']) . '</li>';
               }
               ?>
             </ul>
@@ -108,23 +113,22 @@
         <!-- Portfolio Items -->
         <div class="row portfolio-container" data-aos="fade-up" data-aos-delay="200">
           <?php
-          $query = "SELECT p.*, b.brand_name FROM products p 
+          $query = "SELECT p.*, b.brand_id, b.brand_name FROM products p 
                     JOIN brands b ON p.brand_id = b.brand_id
                     LIMIT 10";
           $stmt = $pdo->prepare($query);
           $stmt->execute();
 
           while ($product = $stmt->fetch(PDO::FETCH_ASSOC)) {
-            $brandClass = strtolower($product['brand_name']);
+            $brandClass = 'filter-' . $product['brand_id'];
             $imagePath = 'uploads/products/' . $product['product_image_url'];
 
-            // Check if product image exists, if not use default
             if (!file_exists($imagePath)) {
               $imagePath = 'assets/img/default-image.png';
             }
-            
+
             echo '
-            <div class="col-lg-4 col-md-6 portfolio-item filter-' . $brandClass . '">
+            <div class="col-lg-4 col-md-6 portfolio-item ' . $brandClass . '">
               <div class="portfolio-wrap">
                 <img src="' . $imagePath . '" class="img-fluid" alt="Product Image">
                 <div class="portfolio-info">
@@ -144,7 +148,6 @@
           ?>
         </div>
 
-        <!-- See More Products Button -->
         <div class="text-center mt-5">
           <a href="agent_products.php" class="btn btn-outline-primary custom-btn">See More Products</a>
         </div>
@@ -179,6 +182,28 @@
   <script src="assets/vendor/isotope-layout/isotope.pkgd.min.js"></script>
   <script src="assets/vendor/swiper/swiper-bundle.min.js"></script>
   <script src="assets/js/main.js"></script>
+
+  <script>
+    document.addEventListener("DOMContentLoaded", function () {
+      var portfolioContainer = document.querySelector('.portfolio-container');
+      if (portfolioContainer) {
+        var iso = new Isotope(portfolioContainer, {
+          itemSelector: '.portfolio-item',
+          layoutMode: 'fitRows'
+        });
+
+        var filters = document.querySelectorAll('#portfolio-flters li');
+        filters.forEach(function (filter) {
+          filter.addEventListener('click', function () {
+            filters.forEach(function (f) { f.classList.remove('filter-active'); });
+            this.classList.add('filter-active');
+            var filterValue = this.getAttribute('data-filter');
+            iso.arrange({ filter: filterValue });
+          });
+        });
+      }
+    });
+  </script>
 
 </body>
 </html>

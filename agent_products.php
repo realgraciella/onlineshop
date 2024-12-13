@@ -207,20 +207,43 @@ $connection->close();
                 <!-- All Products Section -->
                 <h2 class="mt-5">All Products</h2>
                 <div class="product-container">
-                    <?php if (count($products) > 0) : ?>
-                        <?php foreach ($products as $product) : ?>
-                            <div class="product-item" data-name="<?php echo strtolower($product['product_name']); ?>">
-                                <img src="<?php echo $product['product_image_url']; ?>" alt="<?php echo htmlspecialchars($product['product_name']); ?>">
-                                <h4><?php echo htmlspecialchars($product['product_name']); ?></h4>
-                                <p>Category: <?php echo htmlspecialchars($product['category_name']); ?></p>
-                                <p>Price: PHP <?php echo number_format($product['price'], 2); ?></p>
-                                <button type="button" class="btn btn-success" onclick="addToCart('<?php echo $product['product_id']; ?>')">Add to Cart</button>
-                                <button type="button" class="btn btn-warning">Buy Now</button>
-                            </div>
-                        <?php endforeach; ?>
-                    <?php else : ?>
-                        <p>No products found.</p>
-                    <?php endif; ?>
+                <div class="product-container">
+    <?php foreach ($products as $product): ?>
+        <div class="product-card">
+            <?php
+            // Set image path with fallback for missing or invalid images
+            $imagePath = 'uploads/products/' . $product['product_image_url'];
+            if (!file_exists($imagePath) || empty($product['product_image_url'])) {
+                $imagePath = 'assets/img/default-image.png';
+            }
+            ?>
+            <!-- Display product image -->
+            <img src="<?= $imagePath ?>" alt="<?= htmlspecialchars($product['product_name']) ?>" class="product-image">
+
+            <!-- Display product details -->
+            <h4><?= htmlspecialchars($product['product_name']) ?></h4>
+            <p class="price">PHP <?= number_format($product['price'], 2) ?></p>
+            <p>Stock Level: <?= $product['stock_level'] ?> available</p>
+
+            <!-- Form for checking out -->
+            <form method="POST" action="checkout.php" class="checkout-form">
+                <input type="hidden" name="product_id" value="<?= $product['product_id'] ?>">
+                <div class="form-group">
+                    <label for="quantity-<?= $product['product_id'] ?>">Quantity:</label>
+                    <input 
+                        type="number" 
+                        id="quantity-<?= $product['product_id'] ?>" 
+                        name="quantity" 
+                        min="1" 
+                        max="<?= $product['stock_level'] ?>" 
+                        required 
+                        class="form-control">
+                </div>
+                <button type="submit" name="checkout" class="btn btn-success w-100">Checkout</button>
+            </form>
+        </div>
+    <?php endforeach; ?>
+</div>
                 </div>
             </div>
 
