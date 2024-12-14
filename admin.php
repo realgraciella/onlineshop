@@ -4,6 +4,7 @@ ini_set('display_errors', 1);
 
 include 'database/db_connect.php'; // Database connection
 
+
 // Combined database query to optimize data fetching
 $query = "
     -- Top 3 Agents with highest sales in the last month
@@ -55,7 +56,7 @@ $query = "
     SELECT product_name, stock_level FROM products WHERE stock_level < 10;
 
     -- Recent purchases
-    SELECT product_name, purchase_date FROM purchases ORDER BY purchase_date DESC LIMIT 5;
+    SELECT rcprod_name, purchase_date FROM purchases ORDER BY purchase_date DESC LIMIT 5;
 
     -- Total feedback count (product and system feedback)
     SELECT 

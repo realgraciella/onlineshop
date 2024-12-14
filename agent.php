@@ -6,6 +6,8 @@
     $stmt = $pdo->prepare($query);
     $stmt->execute();
     $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+    
 ?>
 
 <!DOCTYPE html>
@@ -86,7 +88,7 @@
 
     <!-- Portfolio Section -->
     <section id="portfolio" class="portfolio">
-      <div class="container" data-aos="fade-up">
+      <div class="container" data -aos="fade-up">
 
         <div class="section-title">
           <h2>Products</h2>
@@ -121,28 +123,30 @@
 
           while ($product = $stmt->fetch(PDO::FETCH_ASSOC)) {
             $brandClass = 'filter-' . $product['brand_id'];
-            $imagePath = 'uploads/products/' . $product['product_image_url'];
-
-            if (!file_exists($imagePath)) {
-              $imagePath = 'assets/img/default-image.png';
+            $imagePath =  $product['product_image_url'];
+        
+            // Debugging: Check if the image file exists
+            if (file_exists($imagePath)) {
+                echo '
+                <div class="col-lg-4 col-md-6 portfolio-item ' . $brandClass . '">
+                    <div class="portfolio-wrap">
+                        <img src="' . $imagePath . '" class="img-fluid" alt="Product Image">
+                        <div class="portfolio-info">
+                            <h4>' . htmlspecialchars($product['brand_name']) . '</h4>
+                            <p>' . htmlspecialchars($product['product_desc']) . '</p>
+                            <p><strong>Price: PHP ' . number_format(htmlspecialchars($product['price']), 2) . '</strong></p>
+                            <div class="btn-group mt-3">
+                                <button class="btn btn-primary add-to-cart" data-product-id="' . $product['product_id'] . '">Add to Cart</button>
+                                <button class="btn btn-success buy-now" data-product-id="' . $product['product_id'] . '">Buy Now</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>';
+            } else {
+                // Debugging output if the image is not found
+                echo 'Image not found: ' . htmlspecialchars($imagePath) . '<br>';
             }
-
-            echo '
-            <div class="col-lg-4 col-md-6 portfolio-item ' . $brandClass . '">
-              <div class="portfolio-wrap">
-                <img src="' . $imagePath . '" class="img-fluid" alt="Product Image">
-                <div class="portfolio-info">
-                  <h4>' . htmlspecialchars($product['brand_name']) . '</h4>
-                  <p>' . htmlspecialchars($product['product_desc']) . '</p>
-                  <p><strong>Price: PHP ' . number_format(htmlspecialchars($product['price']), 2) . '</strong></p>
-                  <div class="btn-group mt-3">
-                    <button class="btn btn-primary add-to-cart" data-product-id="' . $product['product_id'] . '">Add to Cart</button>
-                    <button class="btn btn-success buy-now" data-product-id="' . $product['product_id'] . '">Buy Now</button>
-                  </div>
-                </div>
-              </div>
-            </div>';
-          }
+        }
 
           $pdo = null;
           ?>
@@ -155,21 +159,21 @@
       </div>
     </section>
 
-    <!-- Contact Section -->
-    <section id="contact" class="contact">
-      <div class="container" data-aos="fade-up">
-        <div class="section-title">
-          <h2>Contact</h2>
-          <p>Contact Us</p>
-        </div>
-        <div class="google-map-container">
-            <iframe src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3870.0867779997902!2d120.62893217612292!3d14.072052786354144!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x33bd976a9791332d%3A0xb37e1b6e3c1d6557!2sDho%20and%20Myrna%20Fashion%20Boutique!5e0!3m2!1sen!2sph!4v1729481040534!5m2!1sen!2sph" 
-                    width="100%" height="300" 
-                    style="border:0;" allowfullscreen="" 
-                    loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>
-        </div>
-      </div>
-    </section>
+<!-- Contact Section -->
+<section"contact" class="contact">
+  <div class="container" data-aos="fade-up">
+    <div class="section-title">
+      <h2>Contact</h2>
+      <p>Contact Us</p>
+    </div>
+    <div class="google-map-container">
+        <iframe src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3870.0867779997902!2d120.62893217612292!3d14.072052786354144!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x33bd976a9791332d%3A0xb37e1b6e3c1d6557!2sDho%20and%20Myrna%20Fashion%20Boutique!5e0!3m2!1sen!2sph!4v1729481040534!5m2!1sen!2sph" 
+                width="100%" height="300" 
+                style="border:0;" allowfullscreen="" 
+                loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>
+    </div>
+  </div>
+  </section>
 
   </main>
 
