@@ -104,7 +104,7 @@ $result = $stmt->get_result();
 
     <style>
         h2 {
-            margin-top: 80px auto;
+            margin-top: 90px auto;
             margin-left: auto;
             margin-right: auto;
             text-align: center;

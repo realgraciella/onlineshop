@@ -114,9 +114,9 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST["addBrand"])) {
         }
 
         button[type="submit"] {
-            background-color: #008a00;
-            color: white;
-            border: none;
+            background-color: #4CAF50;
+            color: black;
+            border: 1px #008a00 solid;
             padding: 10px 20px;
             border-radius: 5px;
             cursor: pointer;
@@ -141,13 +141,14 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST["addBrand"])) {
 
         #brandTable th,
         #brandTable td {
+            text-align: center;
             padding: 12px;
             border: 1px solid #ccc;
         }
 
         #brandTable th {
-            background-color: #008a00;
-            color: #fff;
+            background-color:rgb(61, 61, 61);
+            color: white;
             font-weight: 600;
         }
 
@@ -163,12 +164,12 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST["addBrand"])) {
         }
 
         .edit-btn {
-            background-color: #28a745;
+            background-color: #4CAF50;
             color: #fff;
         }
 
         .edit-btn:hover {
-            background-color: #218838;
+            background-color: #008a00;
         }
 
         .delete-btn {

@@ -13,19 +13,43 @@ if (isset($_POST['upload'])) {
     $product_desc = $_POST['product_desc'];
     $brand_id = $_POST['brand_id'];
     $category_id = $_POST['category_id'];
-    $price = $_POST['price'];
     $stock_level = $_POST['stock_level'];
 
     // Fetch variation data
-$variation_values = $_POST['variation_value'] ?? [];
-$stock_per_variation = $_POST['stock_per_variation'] ?? [];
+    $variation_values = $_POST['variation_value'] ?? [];
+    $stock_per_variation = $_POST['stock_per_variation'] ?? [];
+    $price_per_variation = $_POST['price_per_variation'] ?? [];
 
-// Ensure that both arrays are non-empty and have matching lengths
-if (count($variation_values) !== count($stock_per_variation)) {
-    echo "Error: Mismatched variation data.";
-    exit;
-}
+    // Ensure that all arrays are non-empty and have matching lengths
+    if (count($variation_values) !== count($stock_per_variation) || count($variation_values) !== count($price_per_variation)) {
+        echo "Error: Mismatched variation data.";
+        exit;
+    }
 
+    // Calculate minimum and maximum prices
+    $min_price = null;
+    $max_price = null;
+
+    foreach ($price_per_variation as $price) {
+        $price = floatval($price); // Ensure price is treated as a float
+        if ($min_price === null || $price < $min_price) {
+            $min_price = $price;
+        }
+        if ($max_price === null || $price > $max_price) {
+            $max_price = $price;
+        }
+    }
+
+    // Format the price range for storage as VARCHAR
+    if ($min_price !== null) {
+        if ($max_price !== null && $min_price != $max_price) {
+            $price_range = "PHP " . number_format($min_price, 2) . " - PHP " . number_format($max_price, 2); // If there is a range
+        } else {
+            $price_range = "PHP " . number_format($min_price, 2); // If both prices are the same
+        }
+    } else {
+        $price_range = "N/A"; // Handle case where no prices are provided
+    }
 
     // Handle image upload logic
     $target_dir = "uploads/products/";
@@ -54,7 +78,7 @@ if (count($variation_values) !== count($stock_per_variation)) {
         try {
             $pdo->beginTransaction();
 
-            // Insert product details
+            // Insert product details with calculated price range
             $sql = "INSERT INTO products (product_name, product_desc, brand_id, category_id, price, product_image_url, stock_level)
                     VALUES (:product_name, :product_desc, :brand_id, :category_id, :price, :product_image_url, :stock_level)";
             $stmt = $pdo->prepare($sql);
@@ -63,43 +87,41 @@ if (count($variation_values) !== count($stock_per_variation)) {
                 ':product_desc' => $product_desc,
                 ':brand_id' => $brand_id,
                 ':category_id' => $category_id,
-                ':price' => $price,
+                ':price' => $price_range, // Store the price range as VARCHAR
                 ':product_image_url' => $target_file,
                 ':stock_level' => $stock_level,
             ]);
 
             $product_id = $pdo->lastInsertId();
 
-            // Get variation data from form (make sure the names match your form inputs)
-$variation_values = $_POST['variation_value'] ?? []; // Variation values
-$stock_per_variation = $_POST['stock_per_variation'] ?? []; // Stock per variation
+            // Insert variations into the database
+            if (!empty($variation_values) && !empty($stock_per_variation) && !empty($price_per_variation)) {
+                // Prepare SQL for inserting variations
+                $variation_sql = "INSERT INTO product_variations (product_id, variation_value, stock_per_variation, price_per_variation)
+                                VALUES (:product_id, :variation_value, :stock_per_variation, :price_per_variation)";
+                $variation_stmt = $pdo->prepare($variation_sql);
 
-// Only insert variations if they are provided (not empty)
-if (!empty($variation_values) && !empty($stock_per_variation)) {
-    // Prepare SQL for inserting variations
-    $variation_sql = "INSERT INTO product_variations (product_id, variation_value, stock_per_variation)
-                      VALUES (:product_id, :variation_value, :stock_per_variation)";
-    $variation_stmt = $pdo->prepare($variation_sql);
+                // Loop through the variations and insert them
+                foreach ($variation_values as $index => $variation_value) {
+                    $stock = $stock_per_variation[$index] ?? null;
+                    $price = $price_per_variation[$index] ?? null;
 
-    // Loop through the variations and insert them
-    foreach ($variation_values as $index => $variation_value) {
-        // Ensure stock_per_variation is available for this index
-        $stock = $stock_per_variation[$index] ?? null;
+                    if ($variation_value && $stock !== null && $price !== null) {
+                        // Ensure price is treated as a float for decimal storage
+                        $price = floatval($price); // Convert to float
 
-        if ($variation_value && $stock !== null) {
-            // Insert variation into the database
-            $variation_stmt->execute([
-                ':product_id' => $product_id,
-                ':variation_value' => $variation_value,
-                ':stock_per_variation' => $stock,
-            ]);
-        }
-    }
-} else {
-    echo "No variations provided.";
-}
-
-
+                        // Insert variation into the database
+                        $variation_stmt->execute([
+                            ':product_id' => $product_id,
+                            ':variation_value' => $variation_value,
+                            ':stock_per_variation' => $stock,
+                            ':price_per_variation' => $price, // Store variation price as a decimal
+                        ]);
+                    }
+                }
+            } else {
+                echo "No variations provided.";
+            }
 
             $pdo->commit();
             echo "Product uploaded successfully.";
@@ -120,14 +142,8 @@ if (!empty($variation_values) && !empty($stock_per_variation)) {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Admin - Add Product</title>
-    <!-- Favicons -->
     <link href="assets/img/logo/2.png" rel="icon">
-    
-
-    <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css?family=Open+Sans:300,300i,400,400i,600,600i,700,700i|Raleway:300,300i,400,400i,500,500i,600,600i,700,700i" rel="stylesheet">
-
-    <!-- Vendor CSS Files -->
     <link href="assets/vendor/aos/aos.css" rel="stylesheet">
     <link href="assets/vendor/bootstrap/css/bootstrap.min.css" rel="stylesheet">
     <link href="assets/vendor/bootstrap-icons/bootstrap-icons.css" rel="stylesheet">
@@ -135,8 +151,6 @@ if (!empty($variation_values) && !empty($stock_per_variation)) {
     <link href="assets/vendor/glightbox/css/glightbox.min.css"> 
     <link href="assets/vendor/remixicon/remixicon.css" rel="stylesheet">
     <link href="assets/vendor/swiper/swiper-bundle.min.css" rel="stylesheet">
-
-    <!-- Template Main CSS File -->
     <link href="assets/css/admin.css" rel="stylesheet">
     
     <style>
@@ -224,7 +238,6 @@ if (!empty($variation_values) && !empty($stock_per_variation)) {
             <div id="variation-container">
                 <label>Variations:</label>
                 <div class="form-group variation-group">
-                    <!-- <input type="text" name="variation[]" class="form-control" placeholder="Variation (e.g., Size)" required> -->
                     <button type="button" class="btn btn-primary add-variation">Add Variation</button>
                 </div>
             </div>
@@ -232,7 +245,7 @@ if (!empty($variation_values) && !empty($stock_per_variation)) {
             <!-- Price -->
             <div class="form-group">
                 <label for="price">Price:</label>
-                <input type="number" name="price" class="form-control" step="0.01" required>
+                <input type="text" name="price" class="form-control" placeholder="PHP" readonly>
             </div>
 
             <!-- Stock Level -->
@@ -256,7 +269,6 @@ if (!empty($variation_values) && !empty($stock_per_variation)) {
         // JavaScript to fetch categories based on the selected brand
         function fetchCategories(brandId) {
             if (brandId === "") {
-                // If no brand is selected, clear the category dropdown
                 document.getElementById('category_id').innerHTML = "<option value=''>Select Category</option>";
                 return;
             }
@@ -273,112 +285,96 @@ if (!empty($variation_values) && !empty($stock_per_variation)) {
             xhr.send();
         }
 
-                // JavaScript to calculate and update stock_level based on variations
-function calculateStockLevel() {
-    const variationStocks = document.querySelectorAll('input[name="stock_per_variation[]"]');
-    const stockLevelInput = document.querySelector('input[name="stock_level"]');
+        // JavaScript for handling variations and calculating price range
+        document.querySelector('.add-variation').addEventListener('click', function () {
+            const variationContainer = document.getElementById('variation-container');
 
-    let totalStock = 0;
-    variationStocks.forEach(stockInput => {
-        const value = parseInt(stockInput.value, 10);
-        if (!isNaN(value) && value > 0) {
-            totalStock += value;
-        }
-    });
-
-    // Set the total stock level in the stock_level input field
-    stockLevelInput.value = totalStock;
-}
-
-// Add event listeners to stock_per_variation inputs to trigger recalculation
-function addStockCalculationListeners() {
-    const variationStocks = document.querySelectorAll('input[name="stock_per_variation[]"]');
-    variationStocks.forEach(stockInput => {
-        stockInput.addEventListener('input', calculateStockLevel);
-    });
-}
-
-    // JavaScript for handling variations without a variation name field
-document.querySelector('.add-variation').addEventListener('click', function () {
-    const variationContainer = document.getElementById('variation-container');
-
-    // Create a new variation group
-    const newVariationGroup = document.createElement('div');
-    newVariationGroup.classList.add('form-group', 'variation-group');
-    newVariationGroup.innerHTML = `
-        <div class="variation-values">
-            <input type="text" name="variation_value[]" class="form-control" placeholder="Value (e.g., Large)" required>
-            <input type="number" name="stock_per_variation[]" class="form-control" placeholder="Stock" required>
-        </div>
-        <button type="button" class="btn btn-danger remove-variation">Remove Variation</button>
-    `;
-
-    // Append the new group to the container
-    variationContainer.appendChild(newVariationGroup);
-
-    // Bind event listeners to new inputs
-    bindEventsToVariation(newVariationGroup);
-});
-
-// Function to bind necessary events to variation inputs
-function bindEventsToVariation(variationGroup) {
-    // Stock input for recalculation
-    const stockInput = variationGroup.querySelector('input[name="stock_per_variation[]"]');
-    if (stockInput) {
-        stockInput.addEventListener('input', calculateStockLevel);
-    }
-
-    // Add-value button event
-    const addValueButton = variationGroup.querySelector('.add-value');
-    if (addValueButton) {
-        addValueButton.addEventListener('click', function () {
-            const valueContainer = variationGroup.querySelector('.variation-values');
-            const newValueField = document.createElement('div');
-            newValueField.classList.add('form-group');
-            newValueField.innerHTML = `
-                <input type="text" name="variation_value[]" class="form-control" placeholder="Value (e.g., Large)" required>
-                <input type="number" name="stock_per_variation[]" class="form-control" placeholder="Stock" required>
+            // Create a new variation group
+            const newVariationGroup = document.createElement('div');
+            newVariationGroup.classList.add('form-group', 'variation-group');
+            newVariationGroup.innerHTML = `
+                <div class="variation-values">
+                    <input type="text" name="variation_value[]" class="form-control" placeholder="Value (e.g., Large)" required>
+                    <input type="number" name="stock_per_variation[]" class="form-control" placeholder="Stock" required>
+                    <input type="number" name="price_per_variation[]" class="form-control" placeholder="Price" required>
+                </div>
+                <button type="button" class="btn btn-danger remove-variation">Remove Variation</button>
             `;
-            valueContainer.appendChild(newValueField);
 
-            // Bind stock calculation to new stock input
-            const newStockInput = newValueField.querySelector('input[name="stock_per_variation[]"]');
-            if (newStockInput) {
-                newStockInput.addEventListener('input', calculateStockLevel);
+            // Append the new group to the container
+            variationContainer.appendChild(newVariationGroup);
+
+            // Bind event listeners to new inputs
+            bindEventsToVariation(newVariationGroup);
+        });
+
+        // Function to bind necessary events to variation inputs
+        function bindEventsToVariation(variationGroup) {
+            const stockInput = variationGroup.querySelector('input[name="stock_per_variation[]"]');
+            if (stockInput) {
+                stockInput.addEventListener('input', calculateStockLevel);
             }
-        });
-    }
 
-    // Remove-variation button event
-    const removeVariationButton = variationGroup.querySelector('.remove-variation');
-    if (removeVariationButton) {
-        removeVariationButton.addEventListener('click', function () {
-            variationGroup.remove();
-            calculateStockLevel(); // Recalculate after removing a variation
-        });
-    }
-}
+            const priceInput = variationGroup.querySelector('input[name="price_per_variation[]"]');
+            if (priceInput) {
+                priceInput.addEventListener('input', calculatePriceRange);
+            }
 
-// Calculate and update the total stock level
-function calculateStockLevel() {
-    const variationStocks = document.querySelectorAll('input[name="stock_per_variation[]"]');
-    const stockLevelInput = document.querySelector('input[name="stock_level"]');
-
-    let totalStock = 0;
-    variationStocks.forEach(stockInput => {
-        const value = parseInt(stockInput.value, 10);
-        if (!isNaN(value) && value > 0) {
-            totalStock += value;
+            const removeVariationButton = variationGroup.querySelector('.remove-variation');
+            if (removeVariationButton) {
+                removeVariationButton.addEventListener('click', function () {
+                    variationGroup.remove();
+                    calculateStockLevel();
+                    calculatePriceRange();
+                });
+            }
         }
-    });
 
-    // Update the stock level input
-    stockLevelInput.value = totalStock;
-}
+        // Calculate and update the price range
+        function calculatePriceRange() {
+            const priceInputs = document.querySelectorAll('input[name="price_per_variation[]"]');
+            let minPrice = Infinity;
+            let maxPrice = -Infinity;
+            let priceCount = 0;
 
-// Initial setup: Bind stock calculation to pre-existing variations
-document.querySelectorAll('.variation-group').forEach(bindEventsToVariation);
+            priceInputs.forEach(input => {
+                const value = parseFloat(input.value);
+                if (!isNaN(value)) {
+                    priceCount++;
+                    if (value < minPrice) minPrice = value;
+                    if (value > maxPrice) maxPrice = value;
+                }
+            });
 
+            const priceInput = document.querySelector('input[name="price"]');
+            if (priceCount === 1) {
+                priceInput.value = `PHP ${minPrice}`;
+            } else if (minPrice !== Infinity && maxPrice !== -Infinity) {
+                priceInput.value = `PHP ${minPrice} - ${maxPrice}`;
+            } else {
+                price
+                priceInput.value = "Price: N/A";
+            }
+        }
+
+        // Calculate and update the total stock level
+        function calculateStockLevel() {
+            const variationStocks = document.querySelectorAll('input[name="stock_per_variation[]"]');
+            const stockLevelInput = document.querySelector('input[name="stock_level"]');
+
+            let totalStock = 0;
+            variationStocks.forEach(stockInput => {
+                const value = parseInt(stockInput.value, 10);
+                if (!isNaN(value) && value > 0) {
+                    totalStock += value;
+                }
+            });
+
+            stockLevelInput.value = totalStock;
+        }
+
+        // Initial setup: Bind stock calculation to pre-existing variations
+        document.querySelectorAll('.variation-group').forEach(bindEventsToVariation);
     </script>
 </body>
-</html> ⬤
+</html>
