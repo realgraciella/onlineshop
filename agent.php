@@ -117,7 +117,7 @@
           <?php
           $query = "SELECT p.*, b.brand_id, b.brand_name FROM products p 
                     JOIN brands b ON p.brand_id = b.brand_id
-                    LIMIT 10";
+                    LIMIT 5";
           $stmt = $pdo->prepare($query);
           $stmt->execute();
 

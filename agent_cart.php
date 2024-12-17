@@ -1,58 +1,50 @@
 <?php
 session_start();  // Start the session
 
-// // Define the credit limit
-// define('CREDIT_LIMIT', 1500);
-
-// Initialize the cart_quantity array if it's not set
-if (!isset($_SESSION['cart_quantity'])) {
-    $_SESSION['cart_quantity'] = [];
+// Connect to the database
+$connection = new mysqli('localhost', 'root', '', 'dmshop1');
+if ($connection->connect_error) {
+    die("Connection failed: " . $connection->connect_error);
 }
 
-// Check if there are products in the cart
-if (isset($_SESSION['cart']) && count($_SESSION['cart']) > 0) {
-    // Fetch the products from the database based on the product IDs in the cart
-    $cartProductIds = $_SESSION['cart'];
-    $productIds = implode(',', $cartProductIds);  // Convert the array to a comma-separated string
+// Assuming you have the username stored in the session when the agent logs in
+$username = $_SESSION['username']; // Make sure this is set when the agent logs in
 
-    // Connect to the database
-    $connection = new mysqli('localhost', 'root', '', 'dmshop');
-    if ($connection->connect_error) {
-        die("Connection failed: " . $connection->connect_error);
-    }
+// Fetch the agent's credit limit
+$creditLimitQuery = "SELECT credit_limit FROM agents WHERE agent_user = ?";
+$stmt = $connection->prepare($creditLimitQuery);
+$stmt->bind_param("s", $username);
+$stmt->execute();
+$stmt->bind_result($creditLimit);
+$stmt->fetch();
+$stmt->close();
 
-    // Fetch product details from the database
-    $query = "SELECT * FROM products WHERE product_id IN ($productIds)";
-    $result = $connection->query($query);
+// Initialize the cart items
+$cartItems = [];
 
-    $cartItems = [];  // Initialize the $cartItems array
+// Fetch cart items based on the username
+$cartQuery = "SELECT * FROM cart WHERE username = ?";
+$stmt = $connection->prepare($cartQuery);
+$stmt->bind_param("s", $username);
+$stmt->execute();
+$result = $stmt->get_result();
 
-    if ($result->num_rows > 0) {
-        // Loop through the result and add each product to the $cartItems array
-        while ($product = $result->fetch_assoc()) {
-            $cartItems[] = $product;  // Add product to cartItems array
-        }
-    } else {
-        $cartItems = null;  // Set to null if no products were found
-    }
-
-    $connection->close();
-} else {
-    $cartItems = null;  // Set to null if no products in the session cart
+while ($row = $result->fetch_assoc()) {
+    $cartItems[] = $row;  // Add each cart item to the cartItems array
 }
+
+$stmt->close();
+$connection->close();
 
 // Calculate the total price of the cart
 $total = 0;
 if ($cartItems) {
     foreach ($cartItems as $item) {
-        // Ensure that the quantity is properly initialized
-        $quantity = isset($_SESSION['cart_quantity'][$item['product_id']]) ? $_SESSION['cart_quantity'][$item['product_id']] : 1;
-        $itemTotal = $item['price'] * $quantity;
-        $total += $itemTotal;
+        $total += floatval($item['price_per_variation']) * intval($item['quantity']);
     }
 }
 
-$creditLimitExceeded = $total > CREDIT_LIMIT; // Check if the total exceeds the credit limit
+$creditLimitExceeded = $total > floatval($creditLimit); // Check if the total exceeds the credit limit
 ?>
 
 <!DOCTYPE html>
@@ -62,17 +54,22 @@ $creditLimitExceeded = $total > CREDIT_LIMIT; // Check if the total exceeds the 
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Your Cart</title>
     <link href="assets/img/logo/2.png" rel="icon">
-    <link href="assets/img/apple-touch-icon.png" rel="apple-touch-icon">
+
+    <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css?family=Open+Sans:300,300i,400,400i,600,600i,700,700i|Raleway:300,300i,400,400i,500,500i,600,600i,700,700i" rel="stylesheet">
+
+    <!-- Vendor CSS Files -->
     <link href="assets/vendor/aos/aos.css" rel="stylesheet">
     <link href="assets/vendor/bootstrap/css/bootstrap.min.css" rel="stylesheet">
     <link href="assets/vendor/bootstrap-icons/bootstrap-icons.css" rel="stylesheet">
     <link href="assets/vendor/boxicons/css/boxicons.min.css" rel="stylesheet">
-    <link href="assets/vendor/glightbox/css/glightbox.min.css" rel="stylesheet">
+    <link href="assets/vendor/glightbox/css/glightbox.min.css"> 
     <link href="assets/vendor/remixicon/remixicon.css" rel="stylesheet">
     <link href="assets/vendor/swiper/swiper-bundle.min.css" rel="stylesheet">
+
+    <!-- Template Main CSS File -->
     <link href="assets/css/admin.css" rel="stylesheet">
-    <link href="assets/css/bootstrap.min.css" rel="stylesheet">
+
     <style>
         body {
             font-family: 'Poppins', sans-serif;
@@ -96,30 +93,11 @@ $creditLimitExceeded = $total > CREDIT_LIMIT; // Check if the total exceeds the 
             padding: 10px;
             border-bottom: 1px solid #ddd;
         }
-        .cart-item img {
-            max-width: 100px;
-            max-height: 100px;
-        }
-        .cart-item-info {
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-        }
-        .btn-danger {
-            background-color: #dc3545;
-            border: none;
-        }
-        .btn-danger:hover {
-            background-color: #c82333;
-        }
         .total-price {
             font-size: 20px;
             font-weight: bold;
             margin-top: 20px;
             text-align: right;
-        }
-        .btn {
-            border-radius: 5px;
         }
         .disabled {
             pointer-events: none;
@@ -134,113 +112,69 @@ $creditLimitExceeded = $total > CREDIT_LIMIT; // Check if the total exceeds the 
         <h1>Your Cart</h1>
         <?php if ($cartItems) : ?>
             <div class="cart-items-list">
-                <?php
-                foreach ($cartItems as $item) {
-                    $quantity = isset($_SESSION['cart_quantity'][$item['product_id']]) ? $_SESSION['cart_quantity'][$item['product_id']] : 1;
-                    ?>
+                <?php foreach ($cartItems as $item) : ?>
                     <div class="cart-item">
-                        <img src="<?php echo $item['product_image_url']; ?>" alt="Product Image">
-                        <div class="cart-item-info">
-                            <p><strong><?php echo htmlspecialchars($item['product_name']); ?></strong></p>
-                            <p>Price: PHP <?php echo number_format($item['price'], 2); ?></p>
-                            <p>Quantity: 
-                                <button onclick="updateQuantity(<?php echo $item['product_id']; ?>, 'decrease')">-</button>
-                                <span id="quantity_<?php echo $item['product_id']; ?>"><?php echo $quantity; ?></span>
-                                <button onclick="updateQuantity(<?php echo $item['product_id']; ?>, 'increase')">+</button>
-                            </p>
-                        </div>
-                        <div>
-                            <button class="btn btn-danger" onclick="removeFromCart(<?php echo $item['product_id']; ?>)">Remove</button>
-                        </div>
+                        <p><?php echo htmlspecialchars($item['product_id']); ?></p>
+                        <p>Quantity: <?php echo htmlspecialchars($item['quantity']); ?></p>
                     </div>
-                <?php } ?>
+                <?php endforeach; ?>
             </div>
             <div class="total-price">
                 Total: PHP <span id="total_price"><?php echo number_format($total, 2); ?></span>
             </div>
             <?php if ($creditLimitExceeded) : ?>
                 <div class="alert alert-warning text-center">
-                    Credit limit exceeded! Please remove items until the total price is below PHP 1500.
+                    Credit limit exceeded! Please remove items until the total price is below PHP <?php echo number_format($creditLimit, 2); ?>.
                 </div>
             <?php endif; ?>
             <div class="text-center mt-3">
                 <button class="btn btn-success <?php echo $creditLimitExceeded ? 'disabled' : ''; ?>" onclick="proceedToCheckout()">Proceed to Checkout</button>
             </div>
-        <?php else : ?>
+        <?php else:?>
             <p>Your cart is empty.</p>
         <?php endif; ?>
     </div>
 
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="assets/js/jquery.min.js"></script>
     <script>
-        // Function to remove product from cart
-        function removeFromCart(productId) {
-            const xhr = new XMLHttpRequest();
-            xhr.open('POST', 'remove_from_cart.php', true);
-            xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
-            xhr.onload = function() {
-                if (xhr.status === 200) {
-                    alert('Product removed from cart');
-                    window.location.reload();  // Reload the page to update the cart
-                } else {
-                    alert('Error removing product from cart');
+        async function proceedToCheckout() {
+            // Fetch the order details from the server
+            const response = await fetch('checkout.php', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
                 }
-            };
-            xhr.send('product_id=' + productId);
-        }
+            });
 
-        // Function to update product quantity
-        function updateQuantity(productId, action) {
-            const xhr = new XMLHttpRequest();
-            xhr.open('POST', 'update_quantity.php', true);
-            xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
-            xhr.onload = function() {
-                if (xhr.status === 200) {
-                    const response = JSON.parse(xhr.responseText);
-                    if (response.success) {
-                        document.getElementById('quantity_' + productId).innerText = response.newQuantity;
-                        updateCartTotal();  // Update the cart total after the quantity change
-                    } else {
-                        alert('Error updating quantity');
-                    }
-                }
-            };
-            xhr.send('product_id=' + productId + '&action=' + action);
-        }
+            const data = await response.json();
 
-        // Function to update the cart total (recalculate after quantity change)
-        function updateCartTotal() {
-            const xhr = new XMLHttpRequest();
-            xhr.open('GET', 'get_cart_total.php', true);  // Make sure this file recalculates the total
-            xhr.onload = function() {
-                if (xhr.status === 200) {
-                    const response = JSON.parse(xhr.responseText);
-                    if (response.success) {
-                        // Update the total price on the page
-                        document.getElementById('total_price').innerText = 'Total: PHP ' + response.newTotal;
-                        checkCreditLimit(response.newTotal);  // Check if the total exceeds the credit limit
-                    }
-                }
-            };
-            xhr.send();
-        }
+            if (data.orderId) {
+                // Generate PDF receipt using jsPDF
+                const { jsPDF } = window.jspdf;
+                const doc = new jsPDF();
 
-        // Function to check credit limit and disable Proceed to Checkout button if exceeded
-        function checkCreditLimit(newTotal) {
-            const creditLimit = 1500;  // Define credit limit
-            const proceedButton = document.querySelector('.btn-success');
-            
-            if (newTotal > creditLimit) {
-                proceedButton.classList.add('disabled');
-                alert('Credit limit exceeded! Please remove items until the total price is below PHP 1500.');
+                doc.setFontSize(16);
+                doc.text('Receipt', 20, 20);
+                doc.setFontSize(12);
+                doc.text('Order ID: ' + data.orderId, 20, 30);
+                doc.text('Username: ' + '<?php echo $username; ?>', 20, 40);
+                doc.text('Order Date: ' + new Date().toLocaleString(), 20, 50);
+                doc.text('Total Amount: PHP ' + data.totalAmount.toFixed(2), 20, 60);
+                doc.text('Items:', 20, 70);
+
+                // Add items to the PDF
+                let y = 80; // Starting Y position for items
+                data.items.forEach(item => {
+                    doc.text('Product ID: ' + item.product_id + ' - Variation: ' + item.variation_value + ' - Quantity: ' + item.quantity, 20, y);
+                    y += 10; // Increment Y position for the next item
+                });
+
+                // Save the PDF
+                doc.save('receipt_' + data.orderId + '.pdf');
             } else {
-                proceedButton.classList.remove('disabled');
+                alert('Checkout failed. Please try again.');
             }
-        }
-
-        // Function to proceed to checkout
-        function proceedToCheckout() {
-            window.location.href = 'checkout.php';
         }
     </script>
 </body>

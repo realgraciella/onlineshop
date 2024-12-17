@@ -1,6 +1,6 @@
 <?php
 // Database connection
-$connection = new mysqli('localhost', 'root', '', 'dmshop');
+$connection = new mysqli('localhost', 'root', '', 'dmshop1');
 
 if ($connection->connect_error) {
     die("Connection failed: " . $connection->connect_error);
@@ -12,13 +12,28 @@ $result = $connection->query($query);
 
 $saleProducts = [];
 if ($result->num_rows > 0) {
-    $saleProducts = $result->fetch_all(MYSQLI_ASSOC);
+    while ($row = $result->fetch_assoc()) {
+        // Convert price and old_price to float
+        $row['price'] = floatval($row['price']);
+        $row['old_price'] = floatval($row['old_price']);
+        $saleProducts[] = $row;
+    }
 }
 
 // Fetch all products
-$productsQuery = "SELECT products.*, categories.category_name FROM products JOIN categories ON products.category_id = categories.category_id";
+$productsQuery = "SELECT products.*, categories.category_name, product_variations.price_per_variation 
+    FROM products 
+    JOIN categories ON products.category_id = categories.category_id 
+    JOIN product_variations ON products.product_id = product_variations.product_id";
 $productsResult = $connection->query($productsQuery);
-$products = $productsResult->fetch_all(MYSQLI_ASSOC);
+$products = [];
+if ($productsResult->num_rows > 0) {
+    while ($row = $productsResult->fetch_assoc()) {
+        // Convert price_per_variation to float
+        $row['price_per_variation'] = floatval($row['price_per_variation']);
+        $products[] = $row;
+    }
+}
 
 // Fetch brands
 $brandsQuery = "SELECT * FROM brands";
@@ -35,21 +50,7 @@ $connection->close();
     <title>Product Display with Filters and Search</title>
     <!-- Favicons -->
     <link href="assets/img/logo/2.png" rel="icon">
-    <link href="assets/img/apple-touch-icon.png" rel="apple-touch-icon">
-
-    <!-- Google Fonts -->
-    <link href="https://fonts.googleapis.com/css?family=Open+Sans:300,300i,400,400i,600,600i,700,700i|Raleway:300,300i,400,400i,500,500i,600,600i,700,700i" rel="stylesheet">
-
-    <!-- Vendor CSS Files -->
-    <link href="assets/vendor/aos/aos.css" rel="stylesheet">
     <link href="assets/vendor/bootstrap/css/bootstrap.min.css" rel="stylesheet">
-    <link href="assets/vendor/bootstrap-icons/bootstrap-icons.css" rel="stylesheet">
-    <link href="assets/vendor/boxicons/css/boxicons.min.css" rel="stylesheet">
-    <link href="assets/vendor/glightbox/css/glightbox.min.css" rel="stylesheet">
-    <link href="assets/vendor/remixicon/remixicon.css" rel="stylesheet">
-    <link href="assets/vendor/swiper/swiper-bundle.min.css" rel="stylesheet">
-
-    <!-- Template Main CSS File -->
     <link href="assets/css/admin.css" rel="stylesheet">
     <style>
         body {
@@ -137,7 +138,7 @@ $connection->close();
         .filter-section .btn {
             width: 45%;
             margin-top: 10px;
-            padding: 8px;
+            padding:  8px;
             border-radius: 20px;
             font-size: 14px;
         }
@@ -171,19 +172,14 @@ $connection->close();
 
     <div class="display-container">
         <div class="row">
-            <!-- Main Product Display -->
             <div class="col-md-9">
-                <!-- Search Bar and Filter Button -->
                 <div class="d-flex align-items-center mb-3">
-                    <!-- Search Bar -->
                     <input type="text" id="search-bar" class="form-control me-2" placeholder="Search for products..." oninput="filterProducts()" style="flex-grow: 1;">
-                    <!-- Filter Button -->
                     <button class="btn btn-primary filter-button" onclick="toggleFilterSection()">Filter Products</button>
                 </div>
 
                 <h1 class="mb-4">Products</h1>
 
-                <!-- On Sale Products Section -->
                 <div class="sale-section">
                     <h2>On Sale Products</h2>
                     <div class="product-container">
@@ -193,9 +189,13 @@ $connection->close();
                                     <img src="<?php echo $product['product_image_url']; ?>" alt="<?php echo htmlspecialchars($product['product_name']); ?>">
                                     <h4><?php echo htmlspecialchars($product['product_name']); ?></h4>
                                     <p>Category: <?php echo htmlspecialchars($product['category_name']); ?></p>
-                                    <p>Price: <span class="text-decoration-line-through">$<?php echo number_format($product['old_price'], 2); ?></span> $<?php echo number_format($product['price'], 2); ?></p>
-                                    <button type="button" class="btn btn-success" onclick="addToCart('<?php echo $product['product_id']; ?>')">Add to Cart</button>
-                                    <button type="button" class="btn btn-warning">Buy Now</button>
+                                    <?php
+                                        $oldPrice = floatval($product['old_price']);
+                                        $newPrice = floatval($product['price']);
+                                    ?>
+                                    <p>Price: <span class="text-decoration-line-through">PHP <?php echo number_format($oldPrice, 2); ?></span> PHP <?php echo number_format($newPrice, 2); ?></p>
+                                    <button type="button" class="btn btn-success" onclick="showVariationModal('<?php echo $product['product_id']; ?>')">Add to Cart</button>
+                                    <button type="button" class=" btn btn-warning" onclick="showVariationModal('<?php echo $product['product_id']; ?>', true)">Buy Now</button>
                                 </div>
                             <?php endforeach; ?>
                         <?php else : ?>
@@ -204,50 +204,22 @@ $connection->close();
                     </div>
                 </div>
 
-                <!-- All Products Section -->
                 <h2 class="mt-5">All Products</h2>
-                <div class="product-container">
-                <div class="product-container">
-    <?php foreach ($products as $product): ?>
-        <div class="product-card">
-            <?php
-            // Set image path with fallback for missing or invalid images
-            $imagePath = 'uploads/products/' . $product['product_image_url'];
-            if (!file_exists($imagePath) || empty($product['product_image_url'])) {
-                $imagePath = 'assets/img/default-image.png';
-            }
-            ?>
-            <!-- Display product image -->
-            <img src="<?= $imagePath ?>" alt="<?= htmlspecialchars($product['product_name']) ?>" class="product-image">
-
-            <!-- Display product details -->
-            <h4><?= htmlspecialchars($product['product_name']) ?></h4>
-            <p class="price">PHP <?= number_format($product['price'], 2) ?></p>
-            <p>Stock Level: <?= $product['stock_level'] ?> available</p>
-
-            <!-- Form for checking out -->
-            <form method="POST" action="checkout.php" class="checkout-form">
-                <input type="hidden" name="product_id" value="<?= $product['product_id'] ?>">
-                <div class="form-group">
-                    <label for="quantity-<?= $product['product_id'] ?>">Quantity:</label>
-                    <input 
-                        type="number" 
-                        id="quantity-<?= $product['product_id'] ?>" 
-                        name="quantity" 
-                        min="1" 
-                        max="<?= $product['stock_level'] ?>" 
-                        required 
-                        class="form-control">
-                </div>
-                <button type="submit" name="checkout" class="btn btn-success w-100">Checkout</button>
-            </form>
-        </div>
-    <?php endforeach; ?>
-</div>
-                </div>
+                    <div class="product-container">
+                        <?php foreach ($products as $product): ?>
+                            <div class="product-item" data-name="<?php echo strtolower($product['product_name']); ?>">
+                                <img src="<?php echo $product['product_image_url']; ?>" alt="<?php echo htmlspecialchars($product['product_name']); ?>">
+                                <h4><?php echo htmlspecialchars($product['product_name']); ?></h4>
+                                <p>Category: <?php echo htmlspecialchars($product['category_name']); ?></p>
+                                <p>Price: PHP <?php echo number_format(floatval($product['price_per_variation']), 2); // Change here ?></p>
+                                <p>Stock Level: <?php echo $product['stock_level']; ?> available</p>
+                                <button type="button" class="btn btn-success" onclick="showVariationModal('<?php echo $product['product_id']; ?>')">Add to Cart</button>
+                                <button type="button" class="btn btn-warning" onclick="showVariationModal('<?php echo $product['product_id']; ?>', true)">Buy Now</button>
+                            </div>
+                        <?php endforeach; ?>
+                    </div>
             </div>
 
-            <!-- Filter Section -->
             <div class="col-md-3">
                 <div class="filter-section">
                     <h3>Filter Products</h3>
@@ -269,43 +241,114 @@ $connection->close();
         </div>
     </div>
 
+    <!-- Modal for Product Variations -->
+    <div class="modal fade" id="variationModal" tabindex="-1" aria-labelledby="variationModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="variationModalLabel">Select Variation</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" id="modalProductId">
+                    <div id="variationOptions"></div>
+                    <div class="mt-3">
+                        <label for="quantity">Quantity:</label>
+                        <button type="button" class="btn btn-secondary" onclick="changeQuantity(-1)">-</button>
+                        <input type="number" id="quantity" value="1" min="1" style="width: 50px; text-align: center;">
+                        <button type="button" class="btn btn-secondary" onclick="changeQuantity(1)">+</button>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-success" id="addToCartButton">Add to Cart</button>
+                    <button type="button" class="btn btn-warning" id="buyNowButton">Buy Now</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- JS Scripts -->
     <script src="assets/vendor/jquery/jquery.min.js"></script>
+    <script src="assets/vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
     <script>
-        // Filter products by name
-        function filterProducts() {
-            let searchQuery = document.getElementById('search-bar').value.toLowerCase();
-            let products = document.querySelectorAll('.product-item');
+        let selectedVariationId = null;
 
-            products.forEach(product => {
-                let productName = product.getAttribute('data-name');
-                if (productName.includes(searchQuery)) {
-                    product.style.display = 'block';
-                } else {
-                    product.style.display = 'none';
+        function showVariationModal(productId, isBuyNow = false) {
+            $('#modalProductId').val(productId);
+            $('#variationOptions').empty();
+            selectedVariationId = null;
+
+            // Fetch variations for the selected product
+            $.ajax({
+                url: 'fetch_variations.php',
+                type: 'POST',
+                data: { product_id: productId },
+                success: function(data) {
+                    const variations = JSON.parse(data);
+ variations.forEach(variation => {
+                        $('#variationOptions').append(`
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="variation" value="${variation.variation_id}" id="variation_${variation.variation_id}" onchange="updateVariationDetails(${variation.variation_id}, ${variation.price_per_variation}, ${variation.stock_per_variation})">
+                                <label class="form-check-label" for="variation_${variation.variation_id}">
+                                    ${variation.variation_value} - PHP ${variation.price_per_variation} (Stock: ${variation.stock_per_variation})
+                                </label>
+                            </div>
+                        `);
+                    });
+
+                    $('#variationModal').modal('show');
+
+                    // Set button actions
+                    $('#addToCartButton').off('click').on('click', function() {
+                        if (selectedVariationId) {
+                            addToCart(productId, selectedVariationId, $('#quantity').val());
+                        } else {
+                            alert('Please select a variation.');
+                        }
+                    });
+
+                    $('#buyNowButton').off('click').on('click', function() {
+                        if (selectedVariationId) {
+                            window.location.href = `agent_checkout.php?product_id=${productId}&variation_id=${selectedVariationId}&quantity=${$('#quantity').val()}`;
+                        } else {
+                            alert('Please select a variation.');
+                        }
+                    });
                 }
             });
         }
 
-        // Toggle the visibility of the filter section
-        function toggleFilterSection() {
-            const filterSection = document.querySelector('.filter-section');
-            filterSection.style.display = (filterSection.style.display === 'none') ? 'block' : 'none';
+        function updateVariationDetails(variationId, price, stock) {
+            selectedVariationId = variationId;
+            $('#addToCartButton').data('price', price);
+            $('#addToCartButton').data('stock', stock);
         }
 
-        // Add product to cart using AJAX
-        function addToCart(productId) {
-            const xhr = new XMLHttpRequest();
-            xhr.open('POST', 'add_to_cart.php', true);
-            xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
-            xhr.onload = function() {
-                if (xhr.status === 200) {
-                    alert('Product added to cart');
-                } else {
-                    alert('Error adding product to cart');
+        function changeQuantity(amount) {
+            const quantityInput = $('#quantity');
+            let currentQuantity = parseInt(quantityInput.val());
+            currentQuantity += amount;
+            if (currentQuantity < 1) currentQuantity = 1;
+            quantityInput.val(currentQuantity);
+        }
+
+        function addToCart(productId, variationId, quantity) {
+            $.ajax({
+                url: 'add_to_cart.php',
+                type: 'POST',
+                data: {
+                    product_id: productId,
+                    variation_id: variationId,
+                    quantity: quantity
+                },
+                success: function(response) {
+                    alert('Product added to cart successfully!');
+                    $('#variationModal').modal('hide');
+                },
+                error: function() {
+                    alert('Error adding product to cart.');
                 }
-            };
-            xhr.send('product_id=' + productId);
+            });
         }
     </script>
 </body>

@@ -30,8 +30,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $stmt->bind_param('si', $payment_status, $order_id);
 
         if ($stmt->execute()) {
-            // Redirect to the receipt page
-            header("Location: print_receipt.php?order_id=" . $order_id);
+            // Download receipt
+            header("Content-Type: application/pdf");
+            header("Content-Disposition: attachment; filename=receipt_$order_id.pdf");
+            // Here you would generate the PDF content based on order details
+            echo "Receipt for Order ID: $order_id\nPayment Status: $payment_status";
             exit();
         } else {
             echo "<script>alert('Error updating payment status: " . $conn->error . "');</script>";
@@ -42,10 +45,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         // Handle order status update
         $order_id = $_POST['order_id'];
         $order_status = $_POST['order_status'];
+        $payment_method = $_POST['payment_method'];
 
-        $update_status_query = "UPDATE orders SET order_status = ? WHERE order_id = ?";
+        $update_status_query = "UPDATE orders SET order_status = ?, payment_method = ? WHERE order_id = ?";
         $stmt = $conn->prepare($update_status_query);
-        $stmt->bind_param('si', $order_status, $order_id);
+        $stmt->bind_param('ssi', $order_status, $payment_method, $order_id);
         $stmt->execute();
         $stmt->close();
     }
@@ -56,25 +60,27 @@ $sql = "
     SELECT 
         o.order_id, 
         o.username, 
-        o.name, 
-        o.items, 
         o.total_amount, 
         o.order_date, 
         o.order_status, 
         o.payment_method, 
-        o.payment_status
+        o.payment_status,
+        GROUP_CONCAT(c.variation_value SEPARATOR ', ') AS products
     FROM 
         orders o
+    LEFT JOIN 
+        cart c ON o.username = c.username
     WHERE 
         o.username LIKE ? OR 
-        o.name LIKE ? OR 
         o.order_id LIKE ?
+    GROUP BY 
+        o.order_id
     ORDER BY 
         o.username, o.order_date";
 
 $stmt = $conn->prepare($sql);
 $search_param = '%' . $search_query . '%';
-$stmt->bind_param('ssi', $search_param, $search_param, $search_param);
+$stmt->bind_param('ss', $search_param, $search_param);
 $stmt->execute();
 $result = $stmt->get_result();
 ?>
@@ -86,63 +92,53 @@ $result = $stmt->get_result();
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Admin Order List</title>
     <link href="assets/img/logo/2.png" rel="icon">
-    
+
     <!-- Google Fonts -->
-    <link href="https://fonts.googleapis.com/css?family=Open+Sans:300,400,600,700|Poppins:300,400,500,600,700" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css?family=Open+Sans:300,300i,400,400i,600,600i,700,700i|Raleway:300,300i,400,400i,500,500i,600,600i,700,700i" rel="stylesheet">
 
     <!-- Vendor CSS Files -->
     <link href="assets/vendor/aos/aos.css" rel="stylesheet">
     <link href="assets/vendor/bootstrap/css/bootstrap.min.css" rel="stylesheet">
     <link href="assets/vendor/bootstrap-icons/bootstrap-icons.css" rel="stylesheet">
     <link href="assets/vendor/boxicons/css/boxicons.min.css" rel="stylesheet">
-    <link href="assets/vendor/glightbox/css/glightbox.min.css" rel="stylesheet">
+    <link href="assets/vendor/glightbox/css/glightbox.min.css"> 
     <link href="assets/vendor/remixicon/remixicon.css" rel="stylesheet">
     <link href="assets/vendor/swiper/swiper-bundle.min.css" rel="stylesheet">
 
     <!-- Template Main CSS File -->
     <link href="assets/css/admin.css" rel="stylesheet">
-
     <style>
         h2 {
             margin-top: 90px auto;
-            margin-left: auto;
-            margin-right: auto;
+            /* margin-left: auto;
+            margin-right: auto; */
             text-align: center;
         }
-        .status-pending {
-            color: #ffe165;
-        }
-        .status-processing {
-            color: #1490a6;
-        }
-        .status-completed {
-            color: #4CAF50;
-        }
-        .status-cancelled {
-            color: #f44336;
-        }
+        .status-pending { color: #ffe165; }
+        .status-processing { color: #1490a6; }
+        .status-completed { color: #4CAF50; }
+        .status-cancelled { color: #f44336; }
     </style>
 </head>
 <body>
 <?php include 'admin_header.php'; ?>
- <div class="container mt-5">
+<div class="container mt-5">
     <h2>Order List</h2>
 
     <!-- Search Form -->
     <form method="post" class="mb-3">
         <div class="input-group">
-            <input type="text" name="search" class="form-control" placeholder="Search by Order ID, Username, or Name" value="<?php echo htmlspecialchars($search_query); ?>">
+            <input type="text" name="search" class="form-control" placeholder="Search by Order ID or Username" value="<?php echo htmlspecialchars($search_query); ?>">
             <button class="btn btn-primary" type="submit">Search</button>
         </div>
     </form>
 
     <table class="table table-bordered">
         <thead>
-            <tr>
+ <tr>
                 <th>Order ID</th>
                 <th>Username</th>
-                <th>Name</th>
-                <th>Items</th>
+                <th>Products</th>
                 <th>Total Amount</th>
                 <th>Order Date</th>
                 <th>Order Status</th>
@@ -158,42 +154,46 @@ $result = $stmt->get_result();
                     echo "<tr>";
                     echo "<td>" . htmlspecialchars($row['order_id']) . "</td>";
                     echo "<td>" . htmlspecialchars($row['username']) . "</td>";
-                    echo "<td>" . htmlspecialchars($row['name']) . "</td>";
-                    echo "<td>" . htmlspecialchars($row['items']) . "</td>";
+                    echo "<td>" . htmlspecialchars($row['products']) . "</td>";
                     echo "<td>" . number_format($row['total_amount'], 2) . "</td>";
                     echo "<td>" . htmlspecialchars($row['order_date']) . "</td>";
-                    echo "<td class='status-" . strtolower($row['order_status']) . "'>" . htmlspecialchars($row['order_status']) . "</td>";
-                    echo "<td>" . htmlspecialchars($row['payment_method']) . "</td>";
-                    echo "<td>" . htmlspecialchars($row['payment_status']) . "</td>";
+                    echo "<td class='status-" . strtolower($row['order_status']) . "'>";
+                    echo "<form method='post' action=''>";
+                    echo "<input type='hidden' name='order_id' value='" . htmlspecialchars($row['order_id']) . "' />";
+                    echo "<select name='order_status' class='form-control' onchange='this.form.submit()'>";
+                    echo "<option value='pending'" . ($row['order_status'] == 'pending' ? ' selected' : '') . ">Pending</option>";
+                    echo "<option value='processing'" . ($row['order_status'] == 'processing' ? ' selected' : '') . ">Processing</option>";
+                    echo "<option value='completed'" . ($row['order_status'] == 'completed' ? ' selected' : '') . ">Completed</option>";
+                    echo "<option value='cancelled'" . ($row['order_status'] == 'cancelled' ? ' selected' : '') . ">Cancelled</option>";
+                    echo "</select>";
+                    echo "</form></td>";
                     echo "<td>";
                     echo "<form method='post' action=''>";
                     echo "<input type='hidden' name='order_id' value='" . htmlspecialchars($row['order_id']) . "' />";
+                    echo "<select name='payment_method' class='form-control' onchange='this.form.submit()'>";
+                    echo "<option value='gcash'" . ($row['payment_method'] == 'gcash' ? ' selected' : '') . ">GCash</option>";
+                    echo "<option value='cash'" . ($row['payment_method'] == 'cash' ? ' selected' : '') . ">Cash</option>";
+                    echo "</select>";
+                    echo "</form></td>";
+                    echo "<td>" . htmlspecialchars($row['payment_status']) . "</td>";
+                    echo "<td>";
+                    echo "<form method='post' action=''>";
+                    echo "<input type='hidden' name='order_id' value='" . htmlspecialchars(string: $row['order_id']) . "' />";
                     echo "<button class='btn btn-success' type='submit' name='print_receipt'>Print Receipt</button>";
                     echo "</form>";
                     echo "</td>";
                     echo "</tr>";
                 }
             } else {
-                echo "<tr><td colspan='10'>No orders found.</td></tr>";
+                echo "<tr><td colspan='8'>No orders found.</td></tr>";
             }
             ?>
         </tbody>
     </table>
 </div>
 
-
 <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.5.2/dist/umd/popper.min.js"></script>
 <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
-<script>
-    $('#modifyPaymentModal').on('show.bs.modal', function (event) {
-        var button = $(event.relatedTarget);
-        var orderId = button.data('order-id');
-        var paymentStatus = button.data('payment-status');
-        var modal = $(this);
-        modal.find('#modal-order-id').val(orderId);
-        modal.find('#modal-payment-status').val(paymentStatus);
-    });
-</script>
 </body>
 </html>
