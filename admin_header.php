@@ -30,13 +30,14 @@
         <li class='dropdown'><a href='#'><span>ORDERS</span></a>
           <ul>
             <li><a href='admin_orderList.php'><span>Order List</span></a></li>
-            <li><a href='admin_wishlist.php'><span>Wishlist</span></a></li>
+            <li><a href='admin_wishlist.php'><span>Product Under Agents</span></a></li>
           </ul>
         </li>
         <li class='dropdown'><a href='#'><span>MESSAGES</span></a>
           <ul>
             <li><a href='admin_viewInquiries.php'><span>Inquiries</span></a></li>
             <li><a href='admin_viewFeedbacks.php'><span>Feedbacks</span></a></li>
+            <li><a href='admin_message.php'><span>Agents Message</span></a></li>
           </ul>
         </li>
         <li class='dropdown'><a href='#'><span>PROFILE</span></a>

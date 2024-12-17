@@ -265,15 +265,18 @@ $totalInquiriesCount = $stmt->fetchColumn();
               </ul>
             </div>
             <div class="recent-purchases">
-              <h5>Recent Purchases</h5>
-              <ul class="list-group">
-                <?php foreach ($recentPurchases as $purchase): ?>
-                  <li class="list-group-item">
-                    <?php echo htmlspecialchars($purchase['product_name']); ?> - 
-                    <?php echo date('Y-m-d', strtotime($purchase['purchase_date'])); ?>
-                  </li>
-                <?php endforeach; ?>
-              </ul>
+                <h5>Recent Purchases</h5>
+                <ul class="list-group">
+                    <?php if (empty($recentPurchases)): ?>
+                        <li class="list-group-item">No recent purchases found.</li>
+                    <?php else: ?>
+                        <?php foreach ($recentPurchases as $purchase): ?>
+                            <li class="list-group-item">
+                                <?php echo htmlspecialchars($purchase['rcprod_name']); ?>
+                            </li>
+                        <?php endforeach; ?>
+                    <?php endif; ?>
+                </ul>
             </div>
           </div>
         </div>
@@ -283,7 +286,7 @@ $totalInquiriesCount = $stmt->fetchColumn();
 
   <!-- Footer -->
   <footer class="footer">
-    <p>&copy; 2024 Your Company. All rights reserved.</p>
+    <p>&copy; 2024 DMshop. All rights reserved.</p>
   </footer>
 
   <script>

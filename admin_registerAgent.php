@@ -16,120 +16,101 @@ $registration_success = false;
 $duplicate_contact = false;
 
 // Include PHPMailer classes (commented out for now)
-/* 
-use PHPMailer\PHPMailer\PHPMailer;
-use PHPMailer\PHPMailer\Exception;
-require 'includes/PHPMailer/src/Exception.php';
-require 'includes/PHPMailer/src/PHPMailer.php';
-require 'includes/PHPMailer/src/SMTP.php';
-*/
+# ...
+# PHPMailer setup code
 
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
     // Collect form data
-    $agent_fname = $_POST['agent_fname'];
-    $agent_mname = $_POST['agent_mname'];
-    $agent_lname = $_POST['agent_lname'];
-    $agent_sex = $_POST['agent_sex'];
-    $agent_age = $_POST['agent_age'];
-    $agent_birthdate = $_POST['agent_birthdate'];
-    $agent_contact = $_POST['agent_contact'];
-    $agent_address = $_POST['agent_address'];
-    $agent_validID = $_POST['agent_validID'];
-    $agent_email = $_POST['agent_email'];
+$agent_fname = $_POST['agent_fname'];
+$agent_mname = $_POST['agent_mname'];
+$agent_lname = $_POST['agent_lname'];
+$agent_sex = $_POST['agent_sex'];
+$agent_age = $_POST['agent_age'];
+$agent_birthdate = $_POST['agent_birthdate'];
+$agent_contact = $_POST['agent_contact'];
+$agent_address = $_POST['agent_address'];
+$agent_validID = $_POST['agent_validID'];
+$agent_email = $_POST['agent_email'];
 
-    // Handle file uploads for ID pictures
-    $id_front_data = file_get_contents($_FILES['agent_id_front']['tmp_name']);
-    $id_back_data = file_get_contents($_FILES['agent_id_back']['tmp_name']);
+// Handle file upload for ID image (both front and back in one file)
+$id_image_file = $_FILES['agent_id_image'];
 
-    // Check for duplicate contact number
-    $stmt = $pdo->prepare("SELECT agent_contact FROM agents WHERE agent_contact = :agent_contact");
-    $stmt->bindParam(':agent_contact', $agent_contact);
-    $stmt->execute();
+// Check for duplicate contact number
+$stmt = $pdo->prepare("SELECT agent_contact FROM agents WHERE agent_contact = :agent_contact");
+$stmt->bindParam(':agent_contact', $agent_contact);
+$stmt->execute();
 
-    if ($stmt->rowCount() > 0) {
-        // Contact number already exists
-        $duplicate_contact = true;
-        $_SESSION['error'] = 'This contact number is already in use.';
-        header("Location: admin_registerAgent.php"); // Redirect back to form page
-        exit();
-    } else {
-        try {
-            // Generate unique username and random password
-            $agent_user = "AGT-" . substr($agent_fname, 0, 2) . rand(1000, 9999);
-            $password = bin2hex(random_bytes(5)); // Generate a random password
+if ($stmt->rowCount() > 0) {
+    // Contact number already exists
+    $duplicate_contact = true;
+    $_SESSION['error'] = 'This contact number is already in use.';
+    header("Location: admin_registerAgent.php"); // Redirect back to form page
+    exit();
+} else {
+    try {
+        // Generate unique username and random password
+        $agent_user = "AGT-" . substr($agent_fname, 0, 2) . rand(1000, 9999);
+        $password = bin2hex(random_bytes(5)); // Generate a random password
 
-            // Directly store the password in plain text (no hashing)
-            $plain_password = $password;
+        // Directly store the password in plain text (no hashing)
+        $plain_password = $password;
 
-            // Insert agent details
-            $sql = "INSERT INTO agents (agent_fname, agent_mname, agent_lname, agent_sex, agent_age, agent_birthdate, agent_contact, agent_address, agent_validID, agent_email, id_front_image, id_back_image, role, agent_status, agent_creationDate) 
-                    VALUES (:agent_fname, :agent_mname, :agent_lname, :agent_sex, :agent_age, :agent_birthdate, :agent_contact, :agent_address, :agent_validID, :agent_email, :id_front_image, :id_back_image, 'Sales Agent', 'Active', NOW())";
-            $stmt = $pdo->prepare($sql);
+        // Handle ID image upload
+        $id_image_path = 'uploads/IDs/' . basename($id_image_file['name']);
 
-            // Bind parameters for the agents table
-            $stmt->bindParam(':agent_fname', $agent_fname);
-            $stmt->bindParam(':agent_mname', $agent_mname);
-            $stmt->bindParam(':agent_lname', $agent_lname);
-            $stmt->bindParam(':agent_sex', $agent_sex);
-            $stmt->bindParam(':agent_age', $agent_age);
-            $stmt->bindParam(':agent_birthdate', $agent_birthdate);
-            $stmt->bindParam(':agent_contact', $agent_contact);
-            $stmt->bindParam(':agent_address', $agent_address);
-            $stmt->bindParam(':agent_validID', $agent_validID);
-            $stmt->bindParam(':agent_email', $agent_email);
-            $stmt->bindParam(':id_front_image', $id_front_data, PDO::PARAM_LOB);
-            $stmt->bindParam(':id_back_image', $id_back_data, PDO::PARAM_LOB);
-
-            if ($stmt->execute()) {
-                // Insert login credentials into users table with plain text password
-                $sql_users = "INSERT INTO users (username, password, role) VALUES (:username, :password, 'Sales Agent')";
-                $stmt_users = $pdo->prepare($sql_users);
-
-                // Bind parameters for the users table
-                $stmt_users->bindParam(':username', $agent_user);
-                $stmt_users->bindParam(':password', $plain_password); // Use plain password
-                $stmt_users->execute();
-
-                // PHPMailer disabled for now
-                /*
-                // Send email to the agent
-                $mail = new PHPMailer(true);
-                try {
-                    $mail->isSMTP();
-                    $mail->Host = 'smtp.gmail.com';
-                    $mail->SMTPAuth = true;
-                    $mail->Username = 'your-email@gmail.com'; // Replace with your actual email
-                    $mail->Password = 'your-password'; // Replace with your password (or app password)
-                    $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
-                    $mail->Port = 587;
-
-                    $mail->setFrom('your-email@gmail.com', 'Your Company Name');
-                    $mail->addAddress($agent_email);
-
-                    $mail->isHTML(true);
-                    $mail->Subject = 'Welcome to the Team!';
-                    $mail->Body = "Dear $agent_fname,<br><br>Your username is <b>$agent_user</b> and your temporary password is <b>$password</b>. Please change your password upon first login.<br><br>Regards, Company";
-
-                    $mail->send();
-                } catch (Exception $e) {
-                    error_log("PHPMailer Exception: {$mail->ErrorInfo}");
-                }
-                */
-
-                // Redirect to admin_viewAgent.php after success
-                $_SESSION['success'] = 'Agent registered successfully!';
-                header("Location: admin_viewAgent.php");
-                exit();
-            }
-        } catch (PDOException $e) {
-            echo "Database error: " . $e->getMessage();
+        // Move the uploaded file to the target folder
+        if (!move_uploaded_file($id_image_file['tmp_name'], $id_image_path)) {
+            $_SESSION['error'] = 'Failed to upload the ID image.';
+            header("Location: admin_registerAgent.php");
+            exit();
         }
+
+        // Insert agent details with a starting credit limit of 2500 pesos
+        $sql = "INSERT INTO agents (agent_fname, agent_mname, agent_lname, agent_sex, agent_age, agent_birthdate, agent_contact, agent_address, agent_validID, agent_email, id_image_url, role, credit_limit, agent_status, agent_creationDate) 
+                VALUES (:agent_fname, :agent_mname, :agent_lname, :agent_sex, :agent_age, :agent_birthdate, :agent_contact, :agent_address, :agent_validID, :agent_email, :id_image_url, 'Sales Agent', 2500, 'Active', NOW())";
+        $stmt = $pdo->prepare($sql);
+
+        // Bind parameters for the agents table
+        $stmt->bindParam(':agent_fname', $agent_fname);
+        $stmt->bindParam(':agent_mname', $agent_mname);
+        $stmt->bindParam(':agent_lname', $agent_lname);
+        $stmt->bindParam(':agent_sex', $agent_sex);
+        $stmt->bindParam(':agent_age', $agent_age);
+        $stmt->bindParam(':agent_birthdate', $agent_birthdate);
+        $stmt->bindParam(':agent_contact', $agent_contact);
+        $stmt->bindParam(':agent_address', $agent_address);
+        $stmt->bindParam(':agent_validID', $agent_validID);
+        $stmt->bindParam(':agent_email', $agent_email);
+        $stmt->bindParam(':id_image_url', $id_image_path); // Store the uploaded ID image URL
+
+        if ($stmt->execute()) {
+            // Insert login credentials into users table with plain text password
+            $sql_users = "INSERT INTO users (username, password, role) VALUES (:username, :password, 'Sales Agent')";
+            $stmt_users = $pdo->prepare($sql_users);
+
+            // Bind parameters for the users table
+            $stmt_users->bindParam(':username', $agent_user);
+            $stmt_users->bindParam(':password', $plain_password); // Use plain password
+            $stmt_users->execute();
+
+            // Redirect to admin_viewAgent.php after success
+            $_SESSION['success'] = 'Agent registered successfully!';
+            header("Location: admin_viewAgent.php");
+            exit();
+        }
+    } catch (PDOException $e) {
+        $_SESSION['error'] = "Database error: " . $e->getMessage();
+        header("Location: admin_registerAgent.php");
+        exit();
     }
+}
+
 }
 
 // Clear output buffer
 ob_end_flush();
 ?>
+
 
 <!DOCTYPE html>
 <html lang="en">
@@ -156,11 +137,11 @@ ob_end_flush();
             <label for="lname">Last Name:</label>
             <input type="text" id="lname" name="agent_lname" required>
             <label for="sex">Sex:</label>
-            <select id="sex" name="agent_sex" required>
-                <option value="Male">Male</option>
-                <option value="Female">Female</option>
-                <option value="Other">Other</option>
-            </select>
+                <select id="sex" name="agent_sex" required>
+                    <option value="Male">Male</option>
+                    <option value="Female">Female</option>
+                    <option value="Other">Other</option>
+                </select>
             <label for="age">Age:</label>
             <input type="number" id="age" name="agent_age" min="18" max="100" required>
             <label for="birthdate">Birthdate:</label>
@@ -172,35 +153,42 @@ ob_end_flush();
             <label for="email">Email:</label>
             <input type="email" id="email" name="agent_email" required>
             <label for="validID">Valid ID:</label>
-            <select id="validID" name="agent_validID" required onchange="toggleOtherIdField()">
-                <option value="Driver's License">Driver's License</option>
-                <option value="Passport">Passport</option>
-                <option value="National ID">National ID</option>
-                <option value="Other">Other</option>
-            </select>
+                <select id="validID" name="agent_validID" required onchange="toggleOtherIdField()">
+                    <option value="Driver's License">Driver's License</option>
+                    <option value="Passport">Passport</option>
+                    <option value="National ID">National ID</option>
+                    <option value="Other">Other</option>
+                </select>
             <div id="otherIdField" style="display:none;">
                 <label for="otherId">Specify Other ID:</label>
                 <input type="text" id="otherId" name="agent_validID_other" placeholder="Specify other ID">
             </div>
-            <label for="id_front">Upload Front of ID:</label>
-            <input type="file" id="id_front" name="agent_id_front" accept="image/*" required>
-            <label for="id_back">Upload Back of ID:</label>
-            <input type="file" id="id_back" name="agent_id_back" accept="image/*" required>
+            <label for="id_image">Upload Front and Back of ID:</label>
+            <input type="file" id="id_image" name="agent_id_image" accept="image/*" required>
             <button type="submit">Register Agent</button>
         </form>
+
     </div>
   </main>
 
+ 
   <script>
-    function toggleOtherIdField() {
-        const selectElement = document.getElementById('validID');
-        const otherIdField = document.getElementById('otherIdField');
-        if (selectElement.value === 'Other') {
-            otherIdField.style.display = 'block';
-        } else {
-            otherIdField.style.display = 'none';
-        }
-    }
+    // Display success or error alerts if they exist in session
+    <?php if (isset($_SESSION['success'])): ?>
+      Swal.fire({
+        icon: 'success',
+        title: 'Success!',
+        text: '<?php echo $_SESSION['success']; ?>'
+      });
+      <?php unset($_SESSION['success']); // Clear the success message ?>
+    <?php elseif (isset($_SESSION['error'])): ?>
+      Swal.fire({
+        icon: 'error',
+        title: 'Error!',
+        text: '<?php echo $_SESSION['error']; ?>'
+      });
+      <?php unset($_SESSION['error']); // Clear the error message ?>
+    <?php endif; ?>
   </script>
 </body>
 </html>

@@ -1,8 +1,8 @@
 <?php
 session_start();  // Start the session
 
-// Define the credit limit
-define('CREDIT_LIMIT', 1500);
+// // Define the credit limit
+// define('CREDIT_LIMIT', 1500);
 
 // Initialize the cart_quantity array if it's not set
 if (!isset($_SESSION['cart_quantity'])) {

@@ -1,4 +1,5 @@
 <?php
+session_start();
 include 'database/db_connect.php'; 
 
 // Fetch all products with their first variation price and category name
@@ -22,58 +23,69 @@ $variationQuery = "SELECT * FROM product_variations WHERE product_id = ?";
 $variationStmt = $pdo->prepare($variationQuery);
 
 $successMessage = '';
+
 // Handle checkout
-// Handle the sale if the form is submitted
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    foreach ($checkoutData as $item) {
-        $product_name = $item['product_name'];
-        $quantity = $item['quantity'];
-        $variation_id = $item['variation_id'];
+    // Check if username is set in session
+    if (!isset($_SESSION['username'])) {
+        $errorMessage = "User  not logged in.";
+    } else {
+        $username = $_SESSION['username'];
 
-        // Fetch product details
-        $product_query = "SELECT * FROM products WHERE product_name = ?";
-        $product_stmt = $pdo->prepare($product_query);
-        $product_stmt->execute([$product_name]);
-        $product = $product_stmt->fetch(PDO::FETCH_ASSOC);
-
-        // Fetch variation details
-        $variation_query = "SELECT * FROM product_variations WHERE variation_id = ?";
-        $variation_stmt = $pdo->prepare($variation_query);
-        $variation_stmt->execute([$variation_id]);
-        $variation = $variation_stmt->fetch(PDO::FETCH_ASSOC);
-
-        if ($product && $variation && $variation['stock_per_variation'] >= $quantity) {
-            // Calculate total amount
-            $total_amount = $variation['price'] * $quantity;
-
-            // Add to checkout data
-            $checkoutData[] = [
-                'product_name' => $product['product_name'],
-                'variation_id' => $variation['variation_id'],
-                'variation_value' => $variation['variation_value'], // Ensure this is included
-                'quantity' => $quantity,
-                'price' => $variation['price']
-            ];
-
-            // Insert sale into store_sales table
-            $sale_query = "INSERT INTO store_sales (product_id, product_name, product_price, quantity, total_amount, variation_id) 
-                           VALUES (?, ?, ?, ?, ?, ?)";
-            $sale_stmt = $pdo->prepare($sale_query);
-            $sale_stmt->execute([$product['product_id'], $product['product_name'], $variation['price'], $quantity, $total_amount, $variation_id]);
-
-            // Update product stock level in the products table
-            $update_product_query = "UPDATE products SET stock_level = stock_level - ? WHERE product_name = ?";
-            $update_product_stmt = $pdo->prepare($update_product_query);
-            $update_product_stmt->execute([$quantity, $product_name]);
-
-            // Update stock level for the specific variation
-            $update_variation_query = "UPDATE product_variations SET stock_per_variation = stock_per_variation - ? WHERE variation_id = ?";
-            $update_variation_stmt = $pdo->prepare($update_variation_query);
-            $update_variation_stmt->execute([$quantity, $variation_id]);
-
-            $successMessage = "Sale recorded successfully for $product_name. Total amount: PHP $total_amount";
+        // Check if checkoutList is set
+        if (empty($_POST['checkoutList'])) {
+            $errorMessage = "No items in checkout.";
         } else {
-            $errorMessage = "Insufficient stock for $product_name or invalid product.";
+            $checkoutData = json_decode($_POST['checkoutList'], true); // Decode the JSON data
+
+            foreach ($checkoutData as $item) {
+                $product_name = $item['product_name'];
+                $quantity = $item['quantity'];
+                $variation_id = $item['variation_id'];
+
+                // Fetch product details
+                $product_query = "SELECT * FROM products WHERE product_name = ?";
+                $product_stmt = $pdo->prepare($product_query);
+                $product_stmt->execute([$product_name]);
+                $product = $product_stmt->fetch(PDO::FETCH_ASSOC);
+
+                // Fetch variation details
+                $variation_query = "SELECT * FROM product_variations WHERE variation_id = ?";
+                $variation_stmt = $pdo->prepare($variation_query);
+                $variation_stmt->execute([$variation_id]);
+                $variation = $variation_stmt->fetch(PDO::FETCH_ASSOC);
+
+                if ($product && $variation && $variation['stock_per_variation'] >= $quantity) {
+                    // Calculate total amount
+                    $total_amount = $variation['price'] * $quantity;
+
+                    // Get current date and time for sale_date
+                    $sale_date = date('Y-m-d H:i:s');
+
+                    // Insert sale into pos table
+                    $pos_query = "INSERT INTO pos (username, product_id, product_name, variation_id, variation_value, quantity, price, total_amount, sale_date, pos_status) 
+                                  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'On Process')";
+                    $pos_stmt = $pdo->prepare($pos_query);
+                    if (!$pos_stmt->execute([$username, $product['product_id'], $product['product_name'], $variation['variation_id'], $variation['variation_value'], $quantity, $variation['price'], $total_amount, $sale_date])) {
+                        $errorInfo = $pos_stmt->errorInfo();
+                        $errorMessage = "Error inserting into pos table: " . $errorInfo[2];
+                    }
+
+                    // Update product stock level in the products table
+                    $update_product_query = "UPDATE products SET stock_level = stock_level - ? WHERE product_name = ?";
+                    $update_product_stmt = $pdo->prepare($update_product_query);
+                    $update_product_stmt->execute([$quantity, $product_name]);
+
+                    // Update stock level for the specific variation
+                    $update_variation_query = "UPDATE product_variations SET stock_per_variation = stock_per_variation - ? WHERE variation_id = ?";
+                    $update_variation_stmt = $pdo->prepare($update_variation_query);
+                    $update_variation_stmt->execute([$quantity, $variation_id]);
+
+                    $successMessage = "Sale recorded successfully for $product_name. Total amount: PHP $total_amount";
+                } else {
+                    $errorMessage = "Insufficient stock for $product_name or invalid product.";
+                }
+            }
         }
     }
 }
@@ -438,8 +450,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 const checkoutData = checkoutList.map(item => ({
                     product_name: item.productName,
                     quantity: item.quantity,
-                    variation_id: item.variation,
-                    price: item.price
+                    variation_id: item.variationId,
+                    price: item.price,
+                    total_amount: (item.price * item.quantity).toFixed(2) // Calculate total amount
                 }));
 
                 if (checkoutData.length === 0) {
@@ -451,8 +464,44 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     return;
                 }
 
-                const queryString = new URLSearchParams({ data: JSON.stringify(checkoutData) }).toString();
-                window.location.href = `admin_checkout.php?${queryString}`;
+                // Send checkout data to the server
+                fetch('admin_checkout_pro.php', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ checkoutList: checkoutData }) // Send the checkout data as JSON
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Checkout Successful',
+                            text: 'Your order has been placed successfully.'
+                        }).then(() => {
+                            // Redirect to admin_checkout.php after the modal is closed
+                            window.location.href = 'admin_checkout.php';
+                        });
+                        // Optionally clear the checkout list or redirect
+                        checkoutList = []; // Clear the checkout list
+                        updateCheckoutList(); // Update the UI
+                    } else {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Checkout Failed',
+                            text: data.message || 'An error occurred during checkout.'
+                        });
+                    }
+                })
+                .catch(error => {
+                    console.error('Error during checkout:', error);
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        text: 'Could not complete the checkout process.'
+                    });
+                });
             }
         </script>
     </body>

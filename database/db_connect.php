@@ -3,7 +3,7 @@
 $servername = "localhost";
 $username = "root";
 $password = "";
-$dbname = "dmshop";
+$dbname = "dmshop1";
 
 try {
     // Use $servername instead of $host

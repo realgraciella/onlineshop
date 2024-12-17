@@ -43,6 +43,34 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST["addCategory"])) {
     }
 }
 
+// Handle the form submission for editing a category
+if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST["editCategory"])) {
+    $categoryId = $_POST["category_id"];
+    $brandId = $_POST["brand_id"];
+    $categoryName = $_POST["category_name"];
+
+    // Use prepared statements for update
+    try {
+        $sql = "UPDATE categories SET brand_id = :brandId, category_name = :categoryName WHERE category_id = :categoryId";
+        $stmt = $pdo->prepare($sql);
+        $stmt->bindParam(':brandId', $brandId, PDO::PARAM_INT);
+        $stmt->bindParam(':categoryName', $categoryName, PDO::PARAM_STR);
+        $stmt->bindParam(':categoryId', $categoryId, PDO::PARAM_INT);
+
+        if ($stmt->execute()) {
+            // Redirect or refresh to show the updated categories
+            echo "<script>alert('Category updated successfully'); window.location.href = 'add_category.php';</script>";
+        } else {
+            // Handle unsuccessful update
+            echo "<script>alert('Error updating category');</script>";
+        }
+    } catch (PDOException $e) {
+        // Handle exception
+        die("Error updating category: " . $e->getMessage());
+    }
+}
+
+
 // Check if a category is being deleted
 if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST["deleteCategoryId"])) {
     $deleteCategoryId = $_POST["deleteCategoryId"];
@@ -80,8 +108,7 @@ $brands_result = $pdo->query("SELECT * FROM brands");
   <title>Admin Page - Add Category</title>
   <meta content="" name="description">
   <meta content="" name="keywords">
-
-  <!-- Favicons -->
+<!-- Favicons -->
   <link href="assets/img/logo/2.png" rel="icon">
   <link href="assets/img/apple-touch-icon.png" rel="apple-touch-icon">
 
@@ -96,9 +123,11 @@ $brands_result = $pdo->query("SELECT * FROM brands");
   <link href="assets/vendor/glightbox/css/glightbox.min.css" rel="stylesheet">
   <link href="assets/vendor/remixicon/remixicon.css" rel="stylesheet">
   <link href="assets/vendor/swiper/swiper-bundle.min.css" rel="stylesheet">
+  <link href="assets/vendor/bootstrap/css/bootstrap.min.css" rel="stylesheet">
 
   <!-- Template Main CSS File -->
   <link href="assets/css/admin.css" rel="stylesheet">
+  
 </head>
 
 <style>
@@ -196,8 +225,9 @@ $brands_result = $pdo->query("SELECT * FROM brands");
     }
 
     #category-table th {
-        background-color: #008a00;
-        color: #fff;
+        background-color:rgb(61, 61, 61);
+            color: white;
+            font-weight: 600;
     }
 
     #category-table tr:nth-child(even) {
@@ -303,7 +333,68 @@ $brands_result = $pdo->query("SELECT * FROM brands");
     </section>
   </main><!-- End #main -->
 
+
+  <!-- Edit Modal -->
+<div class="modal" id="editModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Edit Category</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="editCategoryForm" method="post" action="add_category.php">
+                    <!-- Brand Dropdown -->
+                    <label for="edit-brand-id">Select Brand:</label>
+                    <select id="edit-brand-id" name="brand_id" required>
+                        <option value="">Select Brand</option>
+                        <?php while ($brand = $brands_result->fetch(PDO::FETCH_ASSOC)) : ?>
+                            <option value="<?php echo $brand['brand_id']; ?>"><?php echo $brand['brand_name']; ?></option>
+                        <?php endwhile; ?>
+                    </select>
+
+                    <label for="edit-category-name">Category Name:</label>
+                    <input type="text" id="edit-category-name" name="category_name" placeholder="Enter category name" required>
+
+                    <input type="hidden" id="edit-category-id" name="category_id">
+                    
+                    <button type="submit" name="editCategory" class="btn btn-primary">Save Changes</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+
   <script>
+    // JavaScript to show and populate the edit modal
+        document.querySelectorAll('.edit-btn').forEach(button => {
+            button.addEventListener('click', function() {
+                // Get the category details from the row
+                var row = button.closest('tr');
+                var categoryId = row.querySelector('td:nth-child(1)').innerText;
+                var categoryName = row.querySelector('td:nth-child(2)').innerText;
+                var brandName = row.querySelector('td:nth-child(3)').innerText;
+                
+                // Set the category id, name and brand in the modal
+                document.getElementById('edit-category-id').value = categoryId;
+                document.getElementById('edit-category-name').value = categoryName;
+
+                // Set the brand in the dropdown (this might need to be done dynamically depending on your setup)
+                var brandDropdown = document.getElementById('edit-brand-id');
+                for (var i = 0; i < brandDropdown.options.length; i++) {
+                    if (brandDropdown.options[i].text === brandName) {
+                        brandDropdown.selectedIndex = i;
+                        break;
+                    }
+                }
+
+                // Show the modal
+                new bootstrap.Modal(document.getElementById('editModal')).show();
+            });
+        });
+
       function confirmDeleteMessage() {
         alert("Category deleted successfully");
         return true; // Continue with form submission
@@ -326,6 +417,7 @@ $brands_result = $pdo->query("SELECT * FROM brands");
   <script src="assets/vendor/isotope-layout/isotope.pkgd.min.js"></script>
   <script src="assets/vendor/swiper/swiper-bundle.min.js"></script>
   <script src="assets/vendor/php-email-form/validate.js"></script>
+  <script src="assets/vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
 
   <!-- Template Main JS File -->
   <script src="assets/js/main.js"></script>

@@ -3,7 +3,7 @@
 $servername = "localhost";
 $username = "root";
 $password = "";
-$dbname = "dmshop"; // Replace with your actual database name
+$dbname = "dmshop1"; // Replace with your actual database name
 
 $conn = new mysqli($servername, $username, $password, $dbname);
 
