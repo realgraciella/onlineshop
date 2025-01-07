@@ -67,8 +67,57 @@ $query = "
     SELECT 
         (SELECT COUNT(*) FROM client_inquiries) + 
         (SELECT COUNT(*) FROM agent_inquiries) AS total_inquiries_count;
-";
+    -- Previous weekly sales
+    SELECT 
+        SUM(sale_amount) AS previous_weekly_sales 
+    FROM sales 
+    WHERE sale_date >= CURDATE() - INTERVAL 14 DAY AND sale_date < CURDATE() - INTERVAL 7 DAY;
 
+    SELECT 
+        SUM(total_amount) AS previous_weekly_store_sales 
+    FROM store_sales 
+    WHERE sale_date >= CURDATE() - INTERVAL 14 DAY AND sale_date < CURDATE() - INTERVAL 7 DAY;
+
+    -- Previous monthly sales
+    SELECT 
+        SUM(sale_amount) AS previous_monthly_sales 
+    FROM sales 
+    WHERE sale_date >= CURDATE() - INTERVAL 2 MONTH AND sale_date < CURDATE() - INTERVAL 1 MONTH;
+
+    SELECT 
+        SUM(total_amount) AS previous_monthly_store_sales 
+    FROM store_sales 
+    WHERE sale_date >= CURDATE() - INTERVAL 2 MONTH AND sale_date < CURDATE() - INTERVAL 1 MONTH;
+
+    -- Previous annual sales
+    SELECT 
+        SUM(sale_amount) AS previous_annual_sales 
+    FROM sales 
+    WHERE sale_date >= CURDATE() - INTERVAL 2 YEAR AND sale_date < CURDATE() - INTERVAL 1 YEAR;
+
+    SELECT 
+        SUM(total_amount) AS previous_annual_store_sales 
+    FROM store_sales 
+    WHERE sale_date >= CURDATE() - INTERVAL 2 YEAR AND sale_date < CURDATE() - INTERVAL 1 YEAR;
+
+    -- Quarterly sales (from both sales and store_sales tables)
+    SELECT 
+        SUM(sale_amount) AS quarterly_sales 
+    FROM sales 
+    WHERE sale_date >= CURDATE() - INTERVAL 3 MONTH;
+
+    SELECT 
+        SUM(total_amount) AS quarterly_store_sales 
+    FROM store_sales 
+    WHERE sale_date >= CURDATE() - INTERVAL 3 MONTH;
+
+    -- Most purchased products
+    SELECT product_name, SUM(quantity) AS total_quantity
+    FROM store_sales
+    GROUP BY product_id
+    ORDER BY total_quantity DESC
+    LIMIT 5;
+";
 $stmt = $pdo->prepare($query);
 $stmt->execute();
 
@@ -105,6 +154,59 @@ $stmt->nextRowset();
 $totalFeedbacksCount = $stmt->fetchColumn();
 $stmt->nextRowset();
 $totalInquiriesCount = $stmt->fetchColumn();
+
+// Previous weekly sales
+$previousWeeklySales = $stmt->fetchColumn() ?: 0;
+$stmt->nextRowset();
+$previousWeeklyStoreSales = $stmt->fetchColumn() ?: 0;
+
+// Previous monthly sales
+$previousMonthlySales = $stmt->fetchColumn() ?: 0;
+$stmt->nextRowset();
+$previousMonthlyStoreSales = $stmt->fetchColumn() ?: 0;
+
+// Previous annual sales
+$previousAnnualSales = $stmt->fetchColumn() ?: 0;
+$stmt->nextRowset();
+$previousAnnualStoreSales = $stmt->fetchColumn() ?: 0;
+
+// Current sales
+$currentWeeklySales = (int)($weeklySales + $weeklyStoreSales);
+$currentMonthlySales = (int)($monthlySales + $monthlyStoreSales);
+$currentAnnualSales = (int)($annualSales + $annualStoreSales);
+
+// Previous sales
+$previousWeeklyTotal = (int)($previousWeeklySales + $previousWeeklyStoreSales);
+$previousMonthlyTotal = (int)($previousMonthlySales + $previousMonthlyStoreSales);
+$previousAnnualTotal = (int)($previousAnnualSales + $previousAnnualStoreSales);
+
+// Determine indicator classes
+$weeklyIndicatorClass = $currentWeeklySales > $previousWeeklyTotal ? 'text-success' : 'text-danger';
+$monthlyIndicatorClass = $currentMonthlySales > $previousMonthlyTotal ? 'text-success' : 'text-danger';
+$annualIndicatorClass = $currentAnnualSales > $previousAnnualTotal ? 'text-success' : 'text-danger';
+
+// Fetch quarterly sales
+$quarterlySales = $stmt->fetchColumn() ?: 0;
+$stmt->nextRowset();
+$quarterlyStoreSales = $stmt->fetchColumn() ?: 0;
+
+// Current quarterly sales
+$currentQuarterlySales = (int)($quarterlySales + $quarterlyStoreSales);
+
+// Sales data for all periods
+$salesData = [
+  'weekly' => [(int)($weeklySales + $weeklyStoreSales)],
+  'monthly' => [(int)($monthlySales + $monthlyStoreSales)],
+  'quarterly' => [(int)($currentQuarterlySales)],
+  'annual' => [(int)($annualSales + $annualStoreSales)]
+];
+
+// Most purchased products from store_sales
+$mostPurchasedStoreProducts = [];
+$stmt->nextRowset();
+while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+    $mostPurchasedStoreProducts[] = $row;
+}
 ?>
 
 <!DOCTYPE html>
@@ -130,11 +232,13 @@ $totalInquiriesCount = $stmt->fetchColumn();
   <script defer src="assets/vendor/glightbox/js/glightbox.min.js"></script>
   <script defer src="assets/vendor/swiper/swiper-bundle.min.js"></script>
   <script defer src="assets/js/admin.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
 
   <style>
     body {
         font-family: 'Poppins', sans-serif;
-        background-color: #f4f6f9;
+        background-color: #e6e6e6;
         color: #444;
     }
     #dashboard {
@@ -142,22 +246,35 @@ $totalInquiriesCount = $stmt->fetchColumn();
         text-align: center;
         margin: 50px auto;
     }
-    .sales-chart {
-        width: 100%;
-        max-width: 1000px;
-        margin: 20px auto;
-    }
     .metric {
-        background: #fff;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        background: rgb(255, 255, 255);
         border-radius: 10px;
-        padding: 25px;
-        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
-        margin: 20px 0;
+        padding: 20px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+        margin: 20px auto;
+        transition: transform 0.2s;
+    }
+    .metric h5 {
+        font-size: 14px; 
+        margin: 0;
+        color: #6c757d;
+    }
+    .metric p {
+        font-family: 'Arial', sans-serif; 
+        font-weight: bold; 
+        font-size: 32px; 
+        margin: 0;
+    }
+    .metric:hover {
+        transform: translateY(-5px);
     }
     .footer {
         padding: 20px;
         text-align: center;
-        background-color: #f8f9fa;
+        background-color: #e6e6e6;
         position: fixed;
         width: 100%;
         bottom: 0;
@@ -170,10 +287,8 @@ $totalInquiriesCount = $stmt->fetchColumn();
         margin: 20px;
         padding: 20px;
         border-radius: 10px;
-        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
-    }
-    .card-body {
-        padding: 20px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+        background: #ffffff;
     }
     .card-title {
         font-size: 24px;
@@ -188,10 +303,31 @@ $totalInquiriesCount = $stmt->fetchColumn();
         margin: 20px;
         padding: 20px;
         border-radius: 10px;
-        background: #fff;
-        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+        background: #ffffff;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
         overflow-y: auto;
-        max-height: 200px; /* Set a max height for scrollable area */
+        max-height: 200px; 
+    }
+    .sales-chart {
+        width: 100%;
+        height: 600px;
+        margin: 20px auto;
+        padding: 40px;
+        background: #ffffff;
+        border-radius: 10px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1); 
+        overflow: visible;
+    }
+    .btn {
+        background-color: #007bff;
+        color: white;
+        border: none;
+        border-radius: 5px;
+        padding: 10px 20px;
+        transition: background-color 0.3s;
+    }
+    .btn:hover {
+        background-color: #0056b3;
     }
   </style>
 </head>
@@ -201,27 +337,36 @@ $totalInquiriesCount = $stmt->fetchColumn();
 
   <main id="main">
     <section id="dashboard">
-      <h2>DASHBOARD</h2>
+      <h2 class="mb-4">Dashboard</h2>
       <div class="container">
         <div class="row">
-          <div class="col-md-3">
+        <div class="col-md-3">
             <div class="metric">
-              <h5>Weekly Sales</h5>
-              <p><?php echo (int)($weeklySales + $weeklyStoreSales); ?></p>
+                <h5>Weekly Sales</h5>
+                <p class="<?php echo $weeklyIndicatorClass; ?>">
+                    <?php echo $currentWeeklySales; ?>
+                    <span class="indicator"><?php echo $currentWeeklySales > $previousWeeklyTotal ? '↑' : '↓'; ?></span>
+                </p>
             </div>
-          </div>
-          <div class="col-md-3">
+        </div>
+        <div class="col-md-3">
             <div class="metric">
-              <h5>Monthly Sales</h5>
-              <p><?php echo (int)($monthlySales + $monthlyStoreSales); ?></p>
+                <h5>Monthly Sales</h5>
+                <p class="<?php echo $monthlyIndicatorClass; ?>">
+                    <?php echo $currentMonthlySales; ?>
+                    <span class="indicator"><?php echo $currentMonthlySales > $previousMonthlyTotal ? '↑' : '↓'; ?></span>
+                </p>
             </div>
-          </div>
-          <div class="col-md-3">
+        </div>
+        <div class="col-md-3">
             <div class="metric">
-              <h5>Annual Sales</h5>
-              <p><?php echo (int)($annualSales + $annualStoreSales); ?></p>
+                <h5>Annual Sales</h5>
+                <p class="<?php echo $annualIndicatorClass; ?>">
+                    <?php echo $currentAnnualSales; ?>
+                    <span class="indicator"><?php echo $currentAnnualSales > $previousAnnualTotal ? '↑' : '↓'; ?></span>
+                </p>
             </div>
-          </div>
+        </div>
           <div class="col-md-3">
             <div class="metric">
               <h5>Active Agents</h5>
@@ -230,17 +375,21 @@ $totalInquiriesCount = $stmt->fetchColumn();
           </div>
         </div>
         <div class="row">
-          <div class="col-md-8">
-            <div class="sales-chart">
-              <h3>Sales Overview</h3>
-              <select id="salesFilter" class="form-select" aria-label="Sales Filter">
-                  <option value="weekly">Weekly</option>
-                  <option value="monthly">Monthly</option>
-                  <option value="annual">Annual</option>
-              </select>
-              <canvas id="salesLineChart"></canvas>
-            </div>
+        <div class="col-md-8">
+          <div class="sales-chart">
+              <h3 style="font-family: Arial, sans-serif; font-weight: bold; text-align: left;">Sales Overview</h3>
+              <div style="display: flex; justify-content: flex-end; ">
+                  <select id="salesFilter" class="form-select" aria-label="Sales Filter" style="width: auto;">
+                      <option value="all">All Sales</option>
+                      <option value="weekly">Weekly</option>
+                      <option value="monthly">Monthly</option>
+                      <option value="quarterly">Quarterly</option>
+                      <option value="annual">Annual</option>
+                  </select>
+              </div>
+              <canvas id="salesLineChart" style="height: 100%; width: 100%;"></canvas>
           </div>
+        </div>
           <div class="col-md-4">
             <div class="leaderboard">
               <h5>Top 3 Agents</h5>
@@ -264,15 +413,16 @@ $totalInquiriesCount = $stmt->fetchColumn();
                 <?php endforeach; ?>
               </ul>
             </div>
-            <div class="recent-purchases">
-                <h5>Recent Purchases</h5>
+            <div class="most-purchased">
+                <h5>Most Purchased Products</h5>
                 <ul class="list-group">
-                    <?php if (empty($recentPurchases)): ?>
-                        <li class="list-group-item">No recent purchases found.</li>
+                    <?php if (empty($mostPurchasedStoreProducts)): ?>
+                        <li class="list-group-item">No products found.</li>
                     <?php else: ?>
-                        <?php foreach ($recentPurchases as $purchase): ?>
+                        <?php foreach ($mostPurchasedStoreProducts as $product): ?>
                             <li class="list-group-item">
-                                <?php echo htmlspecialchars($purchase['rcprod_name']); ?>
+                                <?php echo htmlspecialchars($product['product_name'] ?? 'Unknown Product'); ?> - 
+                                <?php echo (int)($product['total_quantity'] ?? 0); ?>
                             </li>
                         <?php endforeach; ?>
                     <?php endif; ?>
@@ -290,42 +440,55 @@ $totalInquiriesCount = $stmt->fetchColumn();
   </footer>
 
   <script>
-    const salesData = {
-        weekly: [<?php echo (int)($weeklySales + $weeklyStoreSales); ?>],
-        monthly: [<?php echo (int)($monthlySales + $monthlyStoreSales); ?>],
-        annual: [<?php echo (int)($annualSales + $annualStoreSales); ?>]
-    };
-
+    // Sales Chart Setup
+    const salesData = <?php echo json_encode($salesData); ?>;
     const ctx = document.getElementById('salesLineChart').getContext('2d');
-    let salesLineChart = new Chart(ctx, {
-        type: 'line',
-        data: {
-            labels: ['Sales'],
-            datasets: [{
-                label: 'Sales',
-                data: salesData.weekly,
-                borderColor: 'rgba(75, 192, 192, 1)',
-                backgroundColor: 'rgba(75, 192, 192, 0.2)',
-                borderWidth: 2,
-                fill: true
-            }]
-        },
-        options: {
-            responsive: true,
-            scales: {
-                y: {
-                    beginAtZero: true
-                }
-            }
+    const salesLineChart = new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: ['Weekly', 'Monthly', 'Quarterly', 'Annual'],
+        datasets: [{
+          label: 'Sales',
+          data: salesData.weekly.concat(salesData.monthly, salesData.quarterly, salesData.annual),
+          borderColor: '#007bff',
+          backgroundColor: 'rgba(0, 123, 255, 0.1)',
+          fill: true,
+          tension: 0.4
+        }]
+      },
+      options: {
+        responsive: true,
+        scales: {
+          y: {
+            beginAtZero: true
+          }
         }
+      }
     });
 
-    document.getElementById('salesFilter').addEventListener('change', function() {
-        const selectedValue = this.value;
-        salesLineChart.data.datasets[0].data = salesData[selectedValue];
-        salesLineChart.update();
+    // Handle sales filter selection
+    document.getElementById('salesFilter').addEventListener('change', function(event) {
+      const selectedFilter = event.target.value;
+      let filteredData = [];
+
+      if (selectedFilter === 'weekly') {
+        filteredData = salesData.weekly;
+      } else if (selectedFilter === 'monthly') {
+        filteredData = salesData.monthly;
+      } else if (selectedFilter === 'quarterly') {
+        filteredData = salesData.quarterly;
+      } else if (selectedFilter === 'annual') {
+        filteredData = salesData.annual;
+      } else {
+        filteredData = salesData.weekly.concat(salesData.monthly, salesData.quarterly, salesData.annual);
+      }
+
+      salesLineChart.data.datasets[0].data = filteredData;
+      salesLineChart.update();
     });
   </script>
+
+
 </body>
 
 </html>
