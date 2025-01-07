@@ -11,7 +11,7 @@
     <nav id="navbar" class="navbar order-last order-lg-0">
       <ul>
         <li><a class="nav-link scrollto" href="customer.php">HOME</a></li>
-        <li><a class="nav-link scrollto" href="customer.php">BROCHURE</a></li>
+        <li><a class="nav-link scrollto" href="customer_products.php">BROCHURE</a></li>
         <li class='dropdown'><a href='#'><span>TEAM</span></a>
           <ul>
             <li><a href='customer.php'><span>My Agent</span></a></li>
