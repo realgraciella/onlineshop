@@ -151,16 +151,16 @@ $displayData = $display_stmt->fetchAll(PDO::FETCH_ASSOC);
             text-align: center;
         }
         .btn-primary {
-            background-color: #007bff;
-            border-color: #007bff;
+            background-color: #4CAF50;
+            border-color: #008a00;
             padding: 0.75rem 1.5rem;
             color: white;
             font-weight: bold;
             border-radius: 5px;
         }
         .btn-primary:hover {
-            background-color: #0056b3;
-            border-color: #0056b3;
+            background-color: #008a00;
+            border-color: #008a00;
         }
         .btn-danger {
             background-color: #dc3545;
@@ -185,7 +185,7 @@ $displayData = $display_stmt->fetchAll(PDO::FETCH_ASSOC);
             vertical-align: middle;
         }
         .table th {
-            background-color: #007bff;
+            background-color: #343a40;
             color: white;
             font-weight: bold;
         }
@@ -207,7 +207,7 @@ $displayData = $display_stmt->fetchAll(PDO::FETCH_ASSOC);
         .select2-container {
             width: 100% !important }
         .card-header {
-            background-color: #007bff;
+            background-color: #343a40;
             color: white;
             font-size: 1.5rem;
         }

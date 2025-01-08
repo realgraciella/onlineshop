@@ -108,12 +108,15 @@ $result = $stmt->get_result();
     <!-- Template Main CSS File -->
     <link href="assets/css/admin.css" rel="stylesheet">
     <style>
+        body {
+            margin-top: 90px; /* Adjust the value as needed */
+        }
+
         h2 {
-            margin-top: 90px auto;
-            /* margin-left: auto;
-            margin-right: auto; */
+            margin-top: 30px; /* Adjust the value as needed */
             text-align: center;
         }
+
         .status-pending { color: #ffe165; }
         .status-processing { color: #1490a6; }
         .status-completed { color: #4CAF50; }

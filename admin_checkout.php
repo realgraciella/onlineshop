@@ -228,7 +228,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             </div>
             <div class="mb-3" id="salesAgentDropdown" style="display: none;">
                 <label for="sales_agent" class="form-label">Select Sales Agent</label>
-                <select name="sales_agent" id="sales_agent" class="form-select">
+                <input type="text" id="salesAgentSearch" class="form-control" placeholder="Search for a sales agent...">
+                <select name="sales_agent" id="sales_agent" class="form-select mt-2">
                     <option value="">--</option>
                     <?php foreach ($salesAgents as $agent): ?>
                         <option value="<?= htmlspecialchars($agent['user_id']) ?>"><?= htmlspecialchars($agent['username']) ?></option>
@@ -328,24 +329,34 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <script src="assets/vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
     <script>
         $(document).ready(function() {
-            // Initially hide the dropdown and customer input
-            $('#salesAgentDropdown').hide();
-            $('#customerInput').hide();
+        // Initially hide the dropdown and customer input
+        $('#salesAgentDropdown').hide();
+        $('#customerInput').hide();
 
-            $('#salesAgentButton').click(function() {
-                $('#salesAgentDropdown').show();
-                $('#customerInput').hide();
-            });
-
-            $('#customerButton').click(function() {
-                $('#salesAgentDropdown').hide();
-                $('#customerInput').show();
-            });
-
-            <?php if ($abortMessage): ?>
-                $('#abortModal').modal('show');
-            <?php endif; ?>
+        $('#salesAgentButton').click(function() {
+            $('#salesAgentDropdown').show(); // Show the sales agent dropdown
+            $('#customerInput').hide(); // Hide the customer input
+            $('#sales_agent').val(''); // Reset the sales agent selection
         });
+
+        $('#customerButton').click(function() {
+            $('#salesAgentDropdown').hide(); // Hide the sales agent dropdown
+            $('#customerInput').show(); // Show the customer input
+            $('#customer_name').val(''); // Reset the customer name input
+        });
+
+        // Search functionality for sales agent dropdown
+        $('#salesAgentSearch').on('keyup', function() {
+            var value = $(this).val().toLowerCase();
+            $('#sales_agent option').filter(function() {
+                $(this).toggle($(this).text().toLowerCase().indexOf(value) > -1);
+            });
+        });
+
+        <?php if ($abortMessage): ?>
+            $('#abortModal').modal('show');
+        <?php endif; ?>
+    });
     </script>
 </body>
 </html>

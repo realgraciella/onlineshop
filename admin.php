@@ -312,7 +312,7 @@ while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
         width: 100%;
         height: 600px;
         margin: 20px auto;
-        padding: 40px;
+        padding: 80px;
         background: #ffffff;
         border-radius: 10px;
         box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1); 
@@ -451,7 +451,7 @@ while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
           label: 'Sales',
           data: salesData.weekly.concat(salesData.monthly, salesData.quarterly, salesData.annual),
           borderColor: '#007bff',
-          backgroundColor: 'rgba(0, 123, 255, 0.1)',
+          backgroundColor: 'rgba(0, 255, 115, 0.29)',
           fill: true,
           tension: 0.4
         }]
