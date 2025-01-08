@@ -32,6 +32,7 @@
             <li><a href='admin_orderList.php'><span>Order List</span></a></li>
             <li><a href='admin_checkout.php'><span>Checkout List</span></a></li>
             <li><a href='admin_pua.php'><span>Product Under Agents</span></a></li>
+            <li><a href='admin_pua_out.php'><span>PUA Cart</span></a></li>
           </ul>
         </li>
         <li class='dropdown'><a href='#'><span>MESSAGES</span></a>
@@ -41,10 +42,11 @@
             <li><a href='admin_message.php'><span>Agents Message</span></a></li>
           </ul>
         </li>
-        <li class='dropdown'><a href='#'><span>REPORT</span></a>
+        <li class='dropdown'><a href='#'><span>REPORTS</span></a>
           <ul>
             <li><a href='overall_report.php'><span>Overall Report</span></a></li>
             <li><a href='sagent_report.php'><span>Sales Agent Performance</span></a></li>
+            <li><a href='to_return_pro.php'><span>To Return Items</span></a></li>
           </ul>
         </li>
         <li class='dropdown'><a href='#'><span>PROFILE</span></a>
