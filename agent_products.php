@@ -1,13 +1,50 @@
 <?php
-// Database connection
+session_start();
 $connection = new mysqli('localhost', 'root', '', 'dmshop1');
 
 if ($connection->connect_error) {
     die("Connection failed: " . $connection->connect_error);
 }
 
+// Check if the request method is POST
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    // Check if username is set in session
+    if (!isset($_SESSION['username'])) {
+        echo json_encode(['success' => false, 'message' => 'User  not logged in.']);
+        exit; // Exit if the user is not logged in
+    }
+
+    // Retrieve session username
+    $username = $_SESSION['username'];
+
+    // Retrieve product details from POST request
+    $product_id = $_POST['product_id'];
+    $variation_id = $_POST['variation_id'];
+    $variation_value = $_POST['variation_value'];
+    $quantity = $_POST['quantity'];
+    $price_per_variation = $_POST['price_per_variation'];
+
+    // Prepare and bind the statement to insert into the cart
+    $stmt = $connection->prepare("INSERT INTO cart (username, product_id, variation_id, variation_value, quantity, price_per_variation, created_at) VALUES (?, ?, ?, ?, ?, ?, NOW())");
+    $stmt->bind_param("siisid", $username, $product_id, $variation_id, $variation_value, $quantity, $price_per_variation);
+
+    // Execute the statement and check for success
+    if ($stmt->execute()) {
+        echo json_encode(['success' => true, 'message' => 'Product added to cart successfully!']);
+    } else {
+        echo json_encode(['success' => false, 'message' => 'Error adding product to cart.']);
+    }
+
+    // Close the prepared statement
+    $stmt->close();
+}
+
 // Fetch sale products
-$query = "SELECT products.*, categories.category_name FROM products JOIN categories ON products.category_id = categories.category_id WHERE on_sale = 1";
+$query = "SELECT products.*, categories.category_name, product_variations.variation_value 
+          FROM products 
+          JOIN categories ON products.category_id = categories.category_id 
+          JOIN product_variations ON products.product_id = product_variations.product_id 
+          WHERE on_sale = 1";
 $result = $connection->query($query);
 
 $saleProducts = [];
@@ -21,10 +58,10 @@ if ($result->num_rows > 0) {
 }
 
 // Fetch all products
-$productsQuery = "SELECT products.*, categories.category_name, product_variations.price_per_variation 
-    FROM products 
-    JOIN categories ON products.category_id = categories.category_id 
-    JOIN product_variations ON products.product_id = product_variations.product_id";
+$productsQuery = "SELECT products.*, categories.category_name, product_variations.price_per_variation, product_variations.variation_value
+                  FROM products 
+                  JOIN categories ON products.category_id = categories.category_id 
+                  JOIN product_variations ON products.product_id = product_variations.product_id";
 $productsResult = $connection->query($productsQuery);
 $products = [];
 if ($productsResult->num_rows > 0) {
@@ -40,8 +77,10 @@ $brandsQuery = "SELECT * FROM brands";
 $brandsResult = $connection->query($brandsQuery);
 $brands = $brandsResult->fetch_all(MYSQLI_ASSOC);
 
+// Close the database connection
 $connection->close();
 ?>
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -182,26 +221,27 @@ $connection->close();
 
                 <div class="sale-section">
                     <h2>On Sale Products</h2>
-                    <div class="product-container">
-                        <?php if (count($saleProducts) > 0) : ?>
-                            <?php foreach ($saleProducts as $product) : ?>
-                                <div class="product-item" data-name="<?php echo strtolower($product['product_name']); ?>">
-                                    <img src="<?php echo $product['product_image_url']; ?>" alt="<?php echo htmlspecialchars($product['product_name']); ?>">
-                                    <h4><?php echo htmlspecialchars($product['product_name']); ?></h4>
-                                    <p>Category: <?php echo htmlspecialchars($product['category_name']); ?></p>
-                                    <?php
-                                        $oldPrice = floatval($product['old_price']);
-                                        $newPrice = floatval($product['price']);
-                                    ?>
-                                    <p>Price: <span class="text-decoration-line-through">PHP <?php echo number_format($oldPrice, 2); ?></span> PHP <?php echo number_format($newPrice, 2); ?></p>
-                                    <button type="button" class="btn btn-success" onclick="showVariationModal('<?php echo $product['product_id']; ?>')">Add to Cart</button>
-                                    <button type="button" class=" btn btn-warning" onclick="showVariationModal('<?php echo $product['product_id']; ?>', true)">Buy Now</button>
-                                </div>
-                            <?php endforeach; ?>
-                        <?php else : ?>
-                            <p>No products available for sale.</p>
-                        <?php endif; ?>
-                    </div>
+                        <div class="product-container">
+                                <?php if (count($saleProducts) > 0) : ?>
+                                    <?php foreach ($saleProducts as $product) : ?>
+                                        <div class="product-item" data-name="<?php echo strtolower($product['product_name']); ?>">
+                                            <img src="<?php echo $product['product_image_url']; ?>" alt="<?php echo htmlspecialchars($product['product_name']); ?>">
+                                            <h4><?php echo htmlspecialchars($product['product_name']); ?></h4>
+                                            <p>Variation: <?php echo htmlspecialchars($product['variation_value']); ?></p> <!-- Changed from category_name to variation_value -->
+                                            <?php
+                                                $oldPrice = floatval($product['old_price']);
+                                                $newPrice = floatval($product['price']);
+                                            ?>
+                                            <p>Price: <span class="text-decoration-line-through">PHP <?php echo number_format($oldPrice, 2); ?></span> PHP <?php echo number_format($newPrice, 2); ?></p>
+                                            <button type="button" class="btn btn-success" onclick="showVariationModal('<?php echo $product['product_id']; ?>')">Add to Cart</button>
+                                            <button type="button" class="btn btn-warning" onclick="showVariationModal('<?php echo $product['product_id']; ?>', true)">Buy Now</button>
+                                        </div>
+                                    <?php endforeach; ?>
+                                <?php else : ?>
+                                    <p>No products available for sale.</p>
+                                <?php endif; ?>
+                            </div>
+                        </div>
                 </div>
 
                 <h2 class="mt-5">All Products</h2>
@@ -210,8 +250,8 @@ $connection->close();
                             <div class="product-item" data-name="<?php echo strtolower($product['product_name']); ?>">
                                 <img src="<?php echo $product['product_image_url']; ?>" alt="<?php echo htmlspecialchars($product['product_name']); ?>">
                                 <h4><?php echo htmlspecialchars($product['product_name']); ?></h4>
-                                <p>Category: <?php echo htmlspecialchars($product['category_name']); ?></p>
-                                <p>Price: PHP <?php echo number_format(floatval($product['price_per_variation']), 2); // Change here ?></p>
+                                <p>Variation: <?php echo htmlspecialchars($product['variation_value']); ?></p> <!-- Changed from category_name to variation_value -->
+                                <p>Price: PHP <?php echo number_format(floatval($product['price_per_variation']), 2); ?></p>
                                 <p>Stock Level: <?php echo $product['stock_level']; ?> available</p>
                                 <button type="button" class="btn btn-success" onclick="showVariationModal('<?php echo $product['product_id']; ?>')">Add to Cart</button>
                                 <button type="button" class="btn btn-warning" onclick="showVariationModal('<?php echo $product['product_id']; ?>', true)">Buy Now</button>
@@ -285,7 +325,7 @@ $connection->close();
                 data: { product_id: productId },
                 success: function(data) {
                     const variations = JSON.parse(data);
- variations.forEach(variation => {
+                    variations.forEach(variation => {
                         $('#variationOptions').append(`
                             <div class="form-check">
                                 <input class="form-check-input" type="radio" name="variation" value="${variation.variation_id}" id="variation_${variation.variation_id}" onchange="updateVariationDetails(${variation.variation_id}, ${variation.price_per_variation}, ${variation.stock_per_variation})">
@@ -333,17 +373,33 @@ $connection->close();
         }
 
         function addToCart(productId, variationId, quantity) {
+            const price = $('#addToCartButton').data('price');
+            const variationValue = $('input[name="variation"]:checked').next('label').text().split(' - ')[0]; // Get the selected variation value
+
+            console.log({
+                product_id: productId,
+                variation_id: variationId,
+                variation_value: variationValue,
+                quantity: quantity,
+                price_per_variation: price
+            }); // Log the data being sent
+
             $.ajax({
                 url: 'add_to_cart.php',
                 type: 'POST',
                 data: {
                     product_id: productId,
                     variation_id: variationId,
-                    quantity: quantity
+                    variation_value: variationValue,
+                    quantity: quantity,
+                    price_per_variation: price
                 },
                 success: function(response) {
-                    alert('Product added to cart successfully!');
-                    $('#variationModal').modal('hide');
+                    const result = JSON.parse(response);
+                    alert(result.message);
+                    if (result.success) {
+                        $('#variationModal').modal('hide');
+                    }
                 },
                 error: function() {
                     alert('Error adding product to cart.');
