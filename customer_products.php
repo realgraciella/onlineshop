@@ -7,7 +7,12 @@ if ($connection->connect_error) {
 }
 
 // Fetch sale products
-$query = "SELECT products.*, categories.category_name FROM products JOIN categories ON products.category_id = categories.category_id WHERE on_sale = 1";
+$query = "SELECT products.*, categories.category_name, product_variations.variation_value 
+          FROM products 
+          JOIN categories ON products.category_id = categories.category_id 
+          JOIN product_variations ON products.product_id = product_variations.product_id 
+          WHERE on_sale = 1";
+$result = $connection->query($query);
 $result = $connection->query($query);
 
 $saleProducts = [];
@@ -21,7 +26,7 @@ if ($result->num_rows > 0) {
 }
 
 // Fetch all products
-$productsQuery = "SELECT products.*, categories.category_name, product_variations.price_per_variation 
+$productsQuery = "SELECT products.*, categories.category_name, product_variations.price_per_variation, product_variations.variation_value 
     FROM products 
     JOIN categories ON products.category_id = categories.category_id 
     JOIN product_variations ON products.product_id = product_variations.product_id";
@@ -182,26 +187,27 @@ $connection->close();
 
                 <div class="sale-section">
                     <h2>On Sale Products</h2>
-                    <div class="product-container">
-                        <?php if (count($saleProducts) > 0) : ?>
-                            <?php foreach ($saleProducts as $product) : ?>
-                                <div class="product-item" data-name="<?php echo strtolower($product['product_name']); ?>">
-                                    <img src="<?php echo $product['product_image_url']; ?>" alt="<?php echo htmlspecialchars($product['product_name']); ?>">
-                                    <h4><?php echo htmlspecialchars($product['product_name']); ?></h4>
-                                    <p>Category: <?php echo htmlspecialchars($product['category_name']); ?></p>
-                                    <?php
-                                        $oldPrice = floatval($product['old_price']);
-                                        $newPrice = floatval($product['price']);
-                                    ?>
-                                    <p>Price: <span class="text-decoration-line-through">PHP <?php echo number_format($oldPrice, 2); ?></span> PHP <?php echo number_format($newPrice, 2); ?></p>
-                                    <button type="button" class="btn btn-success" onclick="showVariationModal('<?php echo $product['product_id']; ?>')">Add to Cart</button>
-                                    <button type="button" class=" btn btn-warning" onclick="showVariationModal('<?php echo $product['product_id']; ?>', true)">Buy Now</button>
-                                </div>
-                            <?php endforeach; ?>
-                        <?php else : ?>
-                            <p>No products available for sale.</p>
-                        <?php endif; ?>
-                    </div>
+                        <div class="product-container">
+                                <?php if (count($saleProducts) > 0) : ?>
+                                    <?php foreach ($saleProducts as $product) : ?>
+                                        <div class="product-item" data-name="<?php echo strtolower($product['product_name']); ?>">
+                                            <img src="<?php echo $product['product_image_url']; ?>" alt="<?php echo htmlspecialchars($product['product_name']); ?>">
+                                            <h4><?php echo htmlspecialchars($product['product_name']); ?></h4>
+                                            <p>Variation: <?php echo htmlspecialchars($product['variation_value']); ?></p> <!-- Changed from category_name to variation_value -->
+                                            <?php
+                                                $oldPrice = floatval($product['old_price']);
+                                                $newPrice = floatval($product['price']);
+                                            ?>
+                                            <p>Price: <span class="text-decoration-line-through">PHP <?php echo number_format($oldPrice, 2); ?></span> PHP <?php echo number_format($newPrice, 2); ?></p>
+                                            <button type="button" class="btn btn-success" onclick="showVariationModal('<?php echo $product['product_id']; ?>')">Add to Cart</button>
+                                            <button type="button" class="btn btn-warning" onclick="showVariationModal('<?php echo $product['product_id']; ?>', true)">Buy Now</button>
+                                        </div>
+                                    <?php endforeach; ?>
+                                <?php else : ?>
+                                    <p>No products available for sale.</p>
+                                <?php endif; ?>
+                            </div>
+                        </div>
                 </div>
 
                 <h2 class="mt-5">All Products</h2>
@@ -210,8 +216,8 @@ $connection->close();
                             <div class="product-item" data-name="<?php echo strtolower($product['product_name']); ?>">
                                 <img src="<?php echo $product['product_image_url']; ?>" alt="<?php echo htmlspecialchars($product['product_name']); ?>">
                                 <h4><?php echo htmlspecialchars($product['product_name']); ?></h4>
-                                <p>Category: <?php echo htmlspecialchars($product['category_name']); ?></p>
-                                <p>Price: PHP <?php echo number_format(floatval($product['price_per_variation']), 2); // Change here ?></p>
+                                <p>Variation: <?php echo htmlspecialchars($product['variation_value']); ?></p> <!-- Changed from category_name to variation_value -->
+                                <p>Price: PHP <?php echo number_format(floatval($product['price_per_variation']), 2); ?></p>
                                 <p>Stock Level: <?php echo $product['stock_level']; ?> available</p>
                                 <button type="button" class="btn btn-success" onclick="showVariationModal('<?php echo $product['product_id']; ?>')">Add to Cart</button>
                                 <button type="button" class="btn btn-warning" onclick="showVariationModal('<?php echo $product['product_id']; ?>', true)">Buy Now</button>

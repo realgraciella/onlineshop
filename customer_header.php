@@ -14,19 +14,19 @@
         <li><a class="nav-link scrollto" href="customer_products.php">BROCHURE</a></li>
         <li class='dropdown'><a href='#'><span>TEAM</span></a>
           <ul>
-            <li><a href='customer.php'><span>My Agent</span></a></li>
+            <li><a href='customer_agent.php'><span>My Agent</span></a></li>
           </ul>
         </li>
         <li class='dropdown'><a href='#'><span>ORDERS</span></a>
           <ul>
-          <li><a href='customer.php'><span>Cart</span></a></li>
-            <li><a href='customer.php'><span>Order Status</span></a></li>
+          <li><a href='customer_cart.php'><span>Cart</span></a></li>
+            <li><a href='customer_order_status.php'><span>Order Status</span></a></li>
           </ul>
         </li>
         <li class='dropdown'><a href='#'><span>MESSAGES</span></a>
           <ul>
-            <li><a href='customer.php'><span>Inquiries</span></a></li>
-            <li><a href='customer.php'><span>Feedbacks</span></a></li>
+            <li><a href='customer_inquiries.php'><span>Inquiries</span></a></li>
+            <li><a href='customer_feedback.php'><span>Feedbacks</span></a></li>
           </ul>
         </li>
         <li class='dropdown'><a href='#'><span>PROFILE</span></a>
