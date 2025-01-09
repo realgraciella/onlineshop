@@ -125,6 +125,11 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     <link href="assets/vendor/swiper/swiper-bundle.min.css" rel="stylesheet">
     <link href="assets/css/admin.css" rel="stylesheet">
 
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.5/css/jquery.dataTables.min.css">
+    <script src="https://cdn.datatables.net/1.13.5/js/jquery.dataTables.min.js"></script>
+
+
+
     <style>
         body {
             font-family: 'Poppins', sans-serif;
@@ -350,41 +355,46 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         <form action="#" method="post">
             <section>
                 <?php if ($agents): ?>
-                    <table class="table">
-                        <tr>
-                            <th>Agent ID</th>
-                            <th>First Name</th>
-                            <th>Last Name</th>
-                            <th>Sex</th>
-                            <th>Birthday</th>
-                            <th>Address</th>
-                            <th>Mobile Number</th>
-                            <th>Email Address</th>
-                            <th>Role</th>
-                            <th>Status</th>
-                            <th>Credit Limit</th>
-                            <th>ID Picture</th>
-                            <th>Edit</th>
-                        </tr>
-                        <?php foreach ($agents as $row): ?>
-                        <tr>
-                            <td><?= htmlspecialchars($row['agent_id']); ?></td>
-                            <td><?= htmlspecialchars($row['agent_fname']); ?></td>
-                            <td><?= htmlspecialchars($row['agent_lname']); ?></td>
-                            <td><?= htmlspecialchars($row['agent_sex']); ?></td>
-                            <td><?= htmlspecialchars($row['agent_birthdate']); ?></td>
-                            <td><?= htmlspecialchars($row['agent_address']); ?></td>
-                            <td><?= htmlspecialchars($row['agent_contact']); ?></td>
-                            <td><?= htmlspecialchars($row['agent_email']); ?></td>
-                            <td><?= htmlspecialchars($row['role']); ?></td>
-                            <td><?= htmlspecialchars($row['agent_status']); ?></td>
-                            <td><?= htmlspecialchars($row['credit_limit']); ?></td>
-                            <td><a href="javascript:void(0);" onclick="showModal('uploads/IDs/<?= htmlspecialchars($row['id_image_url']); ?>')">View</a></td>
-                            <td>
-                                <a href="javascript:void(0);" class="edit-button" onclick="openEditModal(<?= htmlspecialchars($row['agent_id']); ?>)">Edit</a>
-                            </td>
-                        </tr>
-                        <?php endforeach; ?>
+                    <table class="table" id="agentInfo">
+                        <thead>
+                            <tr>
+                                <th>Agent ID</th>
+                                <th>First Name</th>
+                                <th>Last Name</th>
+                                <th>Sex</th>
+                                <th>Birthday</th>
+                                <th>Address</th>
+                                <th>Mobile Number</th>
+                                <th>Email Address</th>
+                                <th>Role</th>
+                                <th>Status</th>
+                                <th>Credit Limit</th>
+                                <th>ID Picture</th>
+                                <th>Edit</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php foreach ($agents as $row): ?>
+                            <tr>
+                                <td><?= htmlspecialchars($row['agent_id']); ?></td>
+                                <td><?= htmlspecialchars($row['agent_fname']); ?></td>
+                                <td><?= htmlspecialchars($row['agent_lname']); ?></td>
+                                <td><?= htmlspecialchars($row['agent_sex']); ?></td>
+                                <td><?= htmlspecialchars($row['agent_birthdate']); ?></td>
+                                <td><?= htmlspecialchars($row['agent_address']); ?></td>
+                                <td><?= htmlspecialchars($row['agent_contact']); ?></td>
+                                <td><?= htmlspecialchars($row['agent_email']); ?></td>
+                                <td><?= htmlspecialchars($row['role']); ?></td>
+                                <td><?= htmlspecialchars($row['agent_status']); ?></td>
+                                <td><?= htmlspecialchars($row['credit_limit']); ?></td>
+                                <td><a href="javascript:void(0);" onclick="showModal('uploads/IDs/<?= htmlspecialchars($row['id_image_url']); ?>')">View</a></td>
+                                <td>
+                                    <a href="javascript:void(0);" class="edit-button" onclick="openEditModal(<?= htmlspecialchars($row['agent_id']); ?>)">Edit</a>
+                                </td>
+                            </tr>
+                            <?php endforeach; ?>
+                        </tbody>
+
                     </table>
                 <?php endif; ?>
             </section>
@@ -454,7 +464,16 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         </div>
     </div>
 
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.5/js/jquery.dataTables.min.js"></script>
+
+
     <script>
+
+        $(document).ready(function() {
+            $('#agentInfo').DataTable();
+        });
+
         // Function to show modal for ID image
         function showModal(imagePath) {
             var modal = document.getElementById('myModal');
@@ -523,7 +542,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 document.getElementById('alertModal').style.display = 'block';
                 <?php unset($_SESSION['update_error']); ?>
             <?php endif; ?>
-        };
+        }; 
     </script>
 </body>
 

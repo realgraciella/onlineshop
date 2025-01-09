@@ -1,6 +1,12 @@
 <?php
 session_start();
-include 'database/db_connect.php'; 
+include 'database/db_connect.php';
+
+$username = '';
+
+if (isset($_SESSION['username'])) {
+    $username = $_SESSION['username'];
+}
 
 // Initialize variables
 $checkoutData = [];
@@ -32,82 +38,142 @@ if (isset($_GET['data'])) {
 }
 
 // Handle the sale if the form is submitted
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $agent_id = $_POST['sales_agent'] ?? null;
-    $customer_name = $_POST['customer_name'] ?? null;
+// if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+//     $agent_id = $_POST['sales_agent'] ?? null;
+//     $customer_name = $_POST['customer_name'] ?? null;
 
-    // Complete Purchase Logic
-    if (isset($_POST['complete_purchase'])) {
-        $totalAmount = 0;
-        $sale_date = date('Y-m-d H:i:s');
-        $due_date = date('Y-m-d H:i:s', strtotime('+30 days'));
+//     // Complete Purchase Logic
+//     if (isset($_POST['complete_purchase'])) {
+//         $totalAmount = 0;
+//         $sale_date = date('Y-m-d H:i:s');
+//         $due_date = date('Y-m-d H:i:s', strtotime('+30 days'));
 
-        $receiptContent = "Receipt\n";
-        $receiptContent .= "Date: $sale_date\n";
-        $receiptContent .= "Sales Agent: $agent_id\n\n";
-        $receiptContent .= "Products:\n";
+//         $receiptContent = "Receipt\n";
+//         $receiptContent .= "Date: $sale_date\n";
+//         $receiptContent .= "Sales Agent: $agent_id\n\n";
+//         $receiptContent .= "Products:\n";
 
-        foreach ($checkoutData as $item) {
-            $product_name = $item['product_name'];
-            $quantity = $item['quantity'];
-            $variation_id = $item['variation_id'];
-            $product_price = $item['price'];
-            $total_amount = $product_price * $quantity;
+//         foreach ($checkoutData as $item) {
+//             $product_name = $item['product_name'];
+//             $quantity = $item['quantity'];
+//             $variation_id = $item['variation_id'];
+//             $product_price = $item['price'];
+//             $total_amount = $product_price * $quantity;
 
-            $product_query = "SELECT * FROM products WHERE product_name = ?";
-            $product_stmt = $pdo->prepare($product_query);
-            $product_stmt->execute([$product_name]);
-            $product = $product_stmt->fetch(PDO::FETCH_ASSOC);
+//             $product_query = "SELECT * FROM products WHERE product_name = ?";
+//             $product_stmt = $pdo->prepare($product_query);
+//             $product_stmt->execute([$product_name]);
+//             $product = $product_stmt->fetch(PDO::FETCH_ASSOC);
 
-            $variation_query = "SELECT * FROM product_variations WHERE variation_id = ?";
-            $variation_stmt = $pdo->prepare($variation_query);
-            $variation_stmt->execute([$variation_id]);
-            $variation = $variation_stmt->fetch(PDO::FETCH_ASSOC);
+//             $variation_query = "SELECT * FROM product_variations WHERE variation_id = ?";
+//             $variation_stmt = $pdo->prepare($variation_query);
+//             $variation_stmt->execute([$variation_id]);
+//             $variation = $variation_stmt->fetch(PDO::FETCH_ASSOC);
 
-            if ($product && $variation && $variation['stock_per_variation'] >= $quantity) {
-                $sale_query = "INSERT INTO to_return_products 
-                               (agent_id, agent_username, username, product_id, product_value, price_per_variation, quantity, total_amount, sale_date, due_date) 
-                               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
-                $sale_stmt = $pdo->prepare($sale_query);
-                $sale_stmt->execute([
-                    $agent_id, $_POST['sales_agent_username'], $_SESSION['username'], $product['product_id'], $variation['variation_value'], 
-                    $product_price, $quantity, $total_amount, $sale_date, $due_date
-                ]);
+//             if ($product && $variation && $variation['stock_per_variation'] >= $quantity) {
+//                 $sale_query = "INSERT INTO to_return_products 
+//                                (agent_id, agent_username, username, product_id, product_value, price_per_variation, quantity, total_amount, sale_date, due_date) 
+//                                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+//                 $sale_stmt = $pdo->prepare($sale_query);
+//                 $sale_stmt->execute([
+//                     $agent_id, $_POST['sales_agent_username'], $_SESSION['username'], $product['product_id'], $variation['variation_value'], 
+//                     $product_price, $quantity, $total_amount, $sale_date, $due_date
+//                 ]);
 
-                $update_product_query = "UPDATE products SET stock_level = stock_level - ? WHERE product_name = ?";
-                $update_product_stmt = $pdo->prepare($update_product_query);
-                $update_product_stmt->execute([$quantity, $product_name]);
+//                 $update_product_query = "UPDATE products SET stock_level = stock_level - ? WHERE product_name = ?";
+//                 $update_product_stmt = $pdo->prepare($update_product_query);
+//                 $update_product_stmt->execute([$quantity, $product_name]);
 
-                $update_variation_query = "UPDATE product_variations SET stock_per_variation = stock_per_variation - ? WHERE variation_id = ?";
-                $update_variation_stmt = $pdo->prepare($update_variation_query);
-                $update_variation_stmt->execute([$quantity, $variation_id]);
+//                 $update_variation_query = "UPDATE product_variations SET stock_per_variation = stock_per_variation - ? WHERE variation_id = ?";
+//                 $update_variation_stmt = $pdo->prepare($update_variation_query);
+//                 $update_variation_stmt->execute([$quantity, $variation_id]);
 
-                $totalAmount += $total_amount;
-                $receiptContent .= "- $product_name x $quantity @ PHP $product_price each = PHP $total_amount\n";
-            } else {
-                $errorMessage = "Insufficient stock for $product_name.";
-            }
-        }
+//                 $totalAmount += $total_amount;
+//                 $receiptContent .= "- $product_name x $quantity @ PHP $product_price each = PHP $total_amount\n";
+//             } else {
+//                 $errorMessage = "Insufficient stock for $product_name.";
+//             }
+//         }
 
-        if (empty($errorMessage)) {
-            $receiptContent .= "\nTotal Amount: PHP $totalAmount\n";
+//         if (empty($errorMessage)) {
+//             $receiptContent .= "\nTotal Amount: PHP $totalAmount\n";
 
-            // Generate Receipt File
-            $receiptFile = 'receipt_' . time() . '.txt';
-            file_put_contents($receiptFile, $receiptContent);
+//             // Generate Receipt File
+//             $receiptFile = 'receipt_' . time() . '.txt';
+//             file_put_contents($receiptFile, $receiptContent);
 
-            // Force Download
-            header('Content-Type: application/octet-stream');
-            header('Content-Disposition: attachment; filename="' . $receiptFile . '"');
-            header('Content-Length: ' . filesize($receiptFile));
-            readfile($receiptFile);
+//             // Force Download
+//             header('Content-Type: application/octet-stream');
+//             header('Content-Disposition: attachment; filename="' . $receiptFile . '"');
+//             header('Content-Length: ' . filesize($receiptFile));
+//             readfile($receiptFile);
 
-            // Redirect to Viewing Page
-            header('Location: to_return_pro.php');
-            exit();
-        }
+//             // Redirect to Viewing Page
+//             header('Location: to_return_pro.php');
+//             exit();
+//         }
+//     }
+// }
+
+if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['complete_purchase'])) {
+    // Example: sale date and due date
+
+    $sales_agent_id = $_POST['sales_agent_id'];
+    $sales_agent_username = $_POST['sales_agent_username'];
+
+    $saleDate = date('Y-m-d H:i:s'); // Current date and time
+    $dueDate = date('Y-m-d H:i:s', strtotime('+7 days')); // Due date set 7 days after sale date
+
+    // Retrieve the checkout data (or displayData) from the form
+    $displayData = json_decode($_POST['checkout_data'], true);
+
+    // Loop through the data and insert each item
+    foreach ($displayData as $item) {
+        $agentId = $item['agent_id'];
+        $agentUsername = $item['agent_username'];
+        $productId = $item['product_id'];
+        $productValue = $item['product_value'];
+        $pricePerVariation = $item['price_per_variation'];
+        $quantity = $item['quantity'];
+        $totalAmount = $pricePerVariation * $quantity;
+
+        // Prepare SQL statement to insert data into `to_return_products`
+        $sql = "INSERT INTO to_return_products 
+                (agent_id, agent_username, username, product_id, product_value, price_per_variation, quantity, total_amount, sale_date, due_date)
+                VALUES 
+                (:agent_id, :agent_username, :username, :product_id, :product_value, :price_per_variation, :quantity, :total_amount, :sale_date, :due_date)";
+
+        $stmt = $pdo->prepare($sql);
+
+        // Bind the parameters
+        $stmt->bindParam(':agent_id', $sales_agent_id);
+        $stmt->bindParam(':agent_username', $sales_agent_username);
+
+        $user = $_SESSION['username'];
+
+        $stmt->bindParam(':username', $user);
+        $stmt->bindParam(':product_id', $productId);
+        $stmt->bindParam(':product_value', $productValue);
+        $stmt->bindParam(':price_per_variation', $pricePerVariation);
+        $stmt->bindParam(':quantity', $quantity);
+        $stmt->bindParam(':total_amount', $totalAmount);
+        $stmt->bindParam(':sale_date', $saleDate);
+        $stmt->bindParam(':due_date', $dueDate);
+
+        // Execute the statement
+        $stmt->execute();
     }
+
+    $display_query = "DELETE FROM product_under_agents WHERE username = ? AND pua_status = 'On Process'";
+    $display_stmt = $pdo->prepare($display_query);
+    $display_stmt->execute([$_SESSION['username']]);
+
+    header('Location: to_return_pro.php');
+
+    // After inserting the data, you can proceed with any other actions (e.g., redirect or show a success message).
+    echo "Purchase completed successfully!";
 }
+
 
 
 // Fetch data from product_under_agents for display where pua_status is 'On Process'
@@ -220,17 +286,24 @@ $displayData = $display_stmt->fetchAll(PDO::FETCH_ASSOC);
         <h2>Product Under Agent Checkout</h2>
 
         <!-- Select Sales Agent Form -->
-        <form method="POST" action="to_return_pro.php" class="mb-4">
+        <form method="POST" action="" class="mt-4">
             <div class="mb-3">
                 <label for="sales_agent" class="form-label">Select Active Sales Agent</label>
                 <select name="sales_agent" id="sales_agent" class="form-select select2">
                     <option value="">-- Select an Agent --</option>
                     <?php foreach ($salesAgents as $agent): ?>
-                        <option value="<?= htmlspecialchars($agent['user_id']) ?>" data-username="<?= htmlspecialchars($agent['username']) ?>"><?= htmlspecialchars($agent['username']) ?></option>
+                        <option value="<?= htmlspecialchars($agent['user_id']) ?>" data-username="<?= htmlspecialchars($agent['username']) ?>">
+                            <?= htmlspecialchars($agent['username']) ?>
+                        </option>
                     <?php endforeach; ?>
                 </select>
             </div>
-        </form>
+
+            <input type="hidden" name="checkout_data" value='<?= htmlspecialchars(json_encode($displayData)) ?>'>
+            <input type="hidden" name="complete_purchase" value="1">
+            <input type="hidden" name="sales_agent_id" id="sales_agent_id">
+            <input type="hidden" name="sales_agent_username" id="sales_agent_username">
+
 
         <!-- Success and Error Messages -->
         <?php if ($successMessage): ?>
@@ -251,7 +324,6 @@ $displayData = $display_stmt->fetchAll(PDO::FETCH_ASSOC);
         <table class="table table-striped table-bordered">
             <thead>
                 <tr>
-                    <th>Agent Username</th>
                     <th>Product Name</th>
                     <th>Quantity</th>
                     <th>Price</th>
@@ -261,9 +333,6 @@ $displayData = $display_stmt->fetchAll(PDO::FETCH_ASSOC);
             <tbody>
             <?php foreach ($displayData as $item): ?>
                 <tr>
-                    <td class="agent-username" data-agent-id="<?= htmlspecialchars($item['agent_id']) ?>">
-                        <?= htmlspecialchars($item['agent_username']) ?>
-                    </td>
                     <td><?= htmlspecialchars($item['product_value']) ?></td>
                     <td><?= htmlspecialchars($item['quantity']) ?></td>
                     <td>PHP <?= number_format(htmlspecialchars($item['price_per_variation']), 2) ?></td>
@@ -273,18 +342,15 @@ $displayData = $display_stmt->fetchAll(PDO::FETCH_ASSOC);
         </tbody>
         </table>
 
+        
+        <button type="submit" class="btn btn-primary w-100">Complete Purchase</button>
+        </form>
+
         <div class="text-end">
             <strong>Total Amount:</strong> PHP <?= number_format(array_sum(array_map(function($item) {
                 return $item['price_per_variation'] * $item['quantity'];
             }, $displayData)), 2) ?>
         </div>
-
-        <!-- Checkout Actions -->
-        <form method="POST" action="to_return_pro.php" class="mt-4">
-            <input type="hidden" name="checkout_data" value='<?= htmlspecialchars(json_encode($checkoutData)) ?>'>
-            <input type="hidden" name="complete_purchase" value="1">
-            <button type="submit" class="btn btn-primary w-100">Complete Purchase</button>
-        </form>
 
         <form method="POST" action="admin_pua_out.php" class="mt-4">
             <input type="hidden" name="abort_checkout" value="1">
@@ -294,7 +360,7 @@ $displayData = $display_stmt->fetchAll(PDO::FETCH_ASSOC);
 
     <script src="assets/vendor/jquery/jquery.min.js"></script>
     <script src="assets/vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
-    <script>
+    <!-- <scrip>
         $(document).ready(function() {
             $('.select2').select2({
                 placeholder: "-- Select an Agent --",
@@ -326,6 +392,35 @@ $displayData = $display_stmt->fetchAll(PDO::FETCH_ASSOC);
                 });
             });
         });
-    </script>
+
+        // Attach an event listener to the sales agent dropdown -->
+        <script>
+    // Function to update the hidden input fields when a sales agent is selected
+    function updateSalesAgentInfo() {
+        // Get the selected option from the dropdown
+        var selectedOption = document.getElementById('sales_agent').selectedOptions[0];
+
+        // Check if a valid agent is selected
+        if (selectedOption.value !== '') {
+            var agentId = selectedOption.value; // Get agent ID
+            var agentUsername = selectedOption.getAttribute('data-username'); // Get agent username
+
+            // Update the hidden input fields with the selected agent's data
+            document.getElementById('sales_agent_id').value = agentId;
+            document.getElementById('sales_agent_username').value = agentUsername;
+        } else {
+            // Clear the hidden inputs if no agent is selected
+            document.getElementById('sales_agent_id').value = '';
+            document.getElementById('sales_agent_username').value = '';
+        }
+    }
+
+    // Add an event listener to the select dropdown to update hidden fields when selection changes
+    document.getElementById('sales_agent').addEventListener('change', updateSalesAgentInfo);
+
+    // Optional: Ensure the values are updated on page load if the form is already populated
+    window.onload = updateSalesAgentInfo;
+
+</script>
 </body>
 </html>

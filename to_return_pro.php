@@ -11,7 +11,7 @@ if ($conn->connect_error) {
 }
 
 // Fetch products grouped by agent_username
-$sql = "SELECT tp.username, tp.product_id, tp.product_value, tp.price_per_variation, tp.quantity, p.product_name 
+$sql = "SELECT tp.username, tp.product_id, tp.product_value, tp.price_per_variation, tp.quantity, tp.total_amount,tp.sale_date, tp.due_date, p.product_name 
         FROM to_return_products tp 
         JOIN products p ON tp.product_id = p.product_id 
         GROUP BY tp.username, tp.product_id";
@@ -50,6 +50,9 @@ $result = $conn->query($sql);
                 <th>Product Value</th>
                 <th>Price per Variation</th>
                 <th>Quantity</th>
+                <th>Total Amount</th>
+                <th>Sale Date</th>
+                <th>Due Date</th>
                 <th>Action</th>
             </tr>
         </thead>
@@ -66,6 +69,10 @@ $result = $conn->query($sql);
                         <td><?php echo $row['product_value']; ?></td>
                         <td><?php echo $row['price_per_variation']; ?></td>
                         <td><?php echo $row['quantity']; ?></td>
+                        <td><?php echo $row['total_amount']; ?></td>
+                        <td><?php echo date('F j, Y', strtotime($row['sale_date'])); ?></td>
+                        <td><?php echo date('F j, Y', strtotime($row['due_date'])); ?></td>
+
                         <td>
                             <button class="btn btn-primary" data-toggle="modal" data-target="#returnModal">Return</button>
                         </td>
