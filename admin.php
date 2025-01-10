@@ -207,6 +207,43 @@ $stmt->nextRowset();
 while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
     $mostPurchasedStoreProducts[] = $row;
 }
+
+//Nag ka crash kaya check ang query lagi
+//mali ang kinukuha mo na data kasi dapat total_amount hindi sya sales_amount
+
+$salesData2 = [
+  'weekly' => [],
+  'monthly' => [],
+  'quarterly' => [],
+  'annual' => [],
+  'all' => []
+];
+
+// Weekly sales (last 7 days)
+$stmt = $pdo->prepare("SELECT DATE(sale_date) AS date, SUM(total_amount) AS total FROM store_sales WHERE sale_date >= CURDATE() - INTERVAL 7 DAY GROUP BY DATE(sale_date)");
+$stmt->execute();
+$salesData2['weekly'] = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+// Monthly sales (last 30 days)
+$stmt = $pdo->prepare("SELECT DATE(sale_date) AS date, SUM(total_amount) AS total FROM store_sales WHERE sale_date >= CURDATE() - INTERVAL 1 MONTH GROUP BY DATE(sale_date)");
+$stmt->execute();
+$salesData2['monthly'] = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+// Quarterly sales (last 3 months)
+$stmt = $pdo->prepare("SELECT DATE_FORMAT(sale_date, '%Y-%m') AS month, SUM(total_amount) AS total FROM store_sales WHERE sale_date >= CURDATE() - INTERVAL 3 MONTH GROUP BY DATE_FORMAT(sale_date, '%Y-%m')");
+$stmt->execute();
+$salesData2['quarterly'] = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+// Annual sales (last 12 months)
+$stmt = $pdo->prepare("SELECT DATE_FORMAT(sale_date, '%Y-%m') AS month, SUM(total_amount) AS total FROM store_sales WHERE sale_date >= CURDATE() - INTERVAL 1 YEAR GROUP BY DATE_FORMAT(sale_date, '%Y-%m')");
+$stmt->execute();
+$salesData2['annual'] = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+// Combine all data for 'All' filter
+$salesData2['all'] = array_merge($salesData2['weekly'], $salesData2['monthly'], $salesData2['quarterly'], $salesData2['annual']);
+
+$salesDataJson2 = json_encode($salesData2);
+
 ?>
 
 <!DOCTYPE html>
@@ -439,54 +476,117 @@ while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
     <p>&copy; 2024 DMshop. All rights reserved.</p>
   </footer>
 
-  <script>
-    // Sales Chart Setup
-    const salesData = <?php echo json_encode($salesData); ?>;
-    const ctx = document.getElementById('salesLineChart').getContext('2d');
-    const salesLineChart = new Chart(ctx, {
-      type: 'line',
-      data: {
-        labels: ['Weekly', 'Monthly', 'Quarterly', 'Annual'],
-        datasets: [{
-          label: 'Sales',
-          data: salesData.weekly.concat(salesData.monthly, salesData.quarterly, salesData.annual),
-          borderColor: '#007bff',
-          backgroundColor: 'rgba(0, 255, 115, 0.29)',
-          fill: true,
-          tension: 0.4
-        }]
-      },
-      options: {
-        responsive: true,
-        scales: {
-          y: {
-            beginAtZero: true
-          }
+<!-- <script>
+  // Sales Chart Setup
+  const salesData = <?php echo json_encode($salesData); ?>;
+  const ctx = document.getElementById('salesLineChart').getContext('2d');
+  const salesLineChart = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: ['Weekly', 'Monthly', 'Quarterly', 'Annual'], // Default labels
+      datasets: [{
+        label: 'Sales',
+        data: salesData.weekly.concat(salesData.monthly, salesData.quarterly, salesData.annual), // Default data
+        borderColor: '#007bff',
+        backgroundColor: 'rgba(0, 255, 115, 0.29)',
+        fill: true,
+        tension: 0.4
+      }]
+    },
+    options: {
+      responsive: true,
+      scales: {
+        y: {
+          beginAtZero: true
         }
       }
-    });
+    }
+  });
 
-    // Handle sales filter selection
-    document.getElementById('salesFilter').addEventListener('change', function(event) {
-      const selectedFilter = event.target.value;
-      let filteredData = [];
+  // Handle sales filter selection
+  document.getElementById('salesFilter').addEventListener('change', function(event) {
+    const selectedFilter = event.target.value;
+    let filteredData = [];
+    let newLabels = [];
 
-      if (selectedFilter === 'weekly') {
-        filteredData = salesData.weekly;
-      } else if (selectedFilter === 'monthly') {
-        filteredData = salesData.monthly;
-      } else if (selectedFilter === 'quarterly') {
-        filteredData = salesData.quarterly;
-      } else if (selectedFilter === 'annual') {
-        filteredData = salesData.annual;
-      } else {
-        filteredData = salesData.weekly.concat(salesData.monthly, salesData.quarterly, salesData.annual);
+    if (selectedFilter === 'weekly') {
+      newLabels = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+      filteredData = salesData.weekly;
+    } else if (selectedFilter === 'monthly') {
+      newLabels = Array.from({ length: salesData.monthly.length }, (_, i) => `Week ${i + 1}`);
+      filteredData = salesData.monthly;
+    } else if (selectedFilter === 'quarterly') {
+      newLabels = ['Q1', 'Q2', 'Q3', 'Q4'];
+      filteredData = salesData.quarterly;
+    } else if (selectedFilter === 'annual') {
+      newLabels = Array.from({ length: salesData.annual.length }, (_, i) => `Year ${i + 1}`);
+      filteredData = salesData.annual;
+    } else {
+      newLabels = ['Weekly', 'Monthly', 'Quarterly', 'Annual'];
+      filteredData = salesData.weekly.concat(salesData.monthly, salesData.quarterly, salesData.annual);
+    }
+
+    salesLineChart.data.labels = newLabels;
+    salesLineChart.data.datasets[0].data = filteredData;
+    salesLineChart.update();
+  });
+</script> -->
+
+<script>
+  // Sales Chart Setup
+  const salesData = <?php echo $salesDataJson2; ?>;
+  const ctx = document.getElementById('salesLineChart').getContext('2d');
+  const salesLineChart = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: ['Weekly', 'Monthly', 'Quarterly', 'Annual'], // Default labels
+      datasets: [{
+        label: 'Sales',
+        data: salesData.all.map(item => item.total), // Default data for 'All'
+        borderColor: '#007bff',
+        backgroundColor: 'rgba(0, 255, 115, 0.29)',
+        fill: true,
+        tension: 0.4
+      }]
+    },
+    options: {
+      responsive: true,
+      scales: {
+        y: {
+          beginAtZero: true
+        }
       }
+    }
+  });
 
-      salesLineChart.data.datasets[0].data = filteredData;
-      salesLineChart.update();
-    });
-  </script>
+  // Handle sales filter selection
+  document.getElementById('salesFilter').addEventListener('change', function(event) {
+    const selectedFilter = event.target.value;
+    let filteredData = [];
+    let newLabels = [];
+
+    if (selectedFilter === 'weekly') {
+      newLabels = salesData.weekly.map(item => item.date);
+      filteredData = salesData.weekly.map(item => item.total);
+    } else if (selectedFilter === 'monthly') {
+      newLabels = salesData.monthly.map(item => item.date);
+      filteredData = salesData.monthly.map(item => item.total);
+    } else if (selectedFilter === 'quarterly') {
+      newLabels = salesData.quarterly.map(item => item.month);
+      filteredData = salesData.quarterly.map(item => item.total);
+    } else if (selectedFilter === 'annual') {
+      newLabels = salesData.annual.map(item => item.month);
+      filteredData = salesData.annual.map(item => item.total);
+    } else {
+      newLabels = ['Weekly', 'Monthly', 'Quarterly', 'Annual'];
+      filteredData = salesData.all.map(item => item.total);
+    }
+
+    salesLineChart.data.labels = newLabels;
+    salesLineChart.data.datasets[0].data = filteredData;
+    salesLineChart.update();
+  });
+</script>
 
 
 </body>
