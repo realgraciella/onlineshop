@@ -66,20 +66,26 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                 $stmt_users->bindParam(':username', $client_user);
                 $stmt_users->bindParam(':password', $plain_password);
 
-                $stmt_users->execute();
-
-                // Redirect to client_view.php after success
-                $_SESSION['success'] = 'Client registered successfully!';
-                header("Location: agent_viewClient.php");
-                exit();
+                if ($stmt_users->execute()) {
+                    // Redirect to client_view.php after success
+                    $_SESSION['success'] = ' Client registered successfully!';
+                    header("Location: agent_viewClient.php");
+                    exit();
+                } else {
+                    // Handle error for users table insertion
+                    $_SESSION['error'] = 'Failed to register user credentials.';
+                }
+            } else {
+                // Handle error for clients table insertion
+                $errorInfo = $stmt->errorInfo();
+                $_SESSION['error'] = 'Failed to register client: ' . $errorInfo[2];
             }
         } catch (PDOException $e) {
-            echo "Database error: " . $e->getMessage();
+            $_SESSION['error'] = 'Database error: ' . $e->getMessage();
         }
     }
 }
 ?>
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
