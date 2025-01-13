@@ -108,71 +108,77 @@
 
 
    <!-- ======= Portfolio Section ======= -->
-<section id="portfolio" class="portfolio">
-  <div class="container" data-aos="fade-up">
+   <section id="portfolio" class="portfolio">
+      <div class="container" data-aos="fade-up">
 
-    <div class="section-title">
-      <h2>Brands</h2>
-      <p>Check our Brand Partners</p>
-    </div>
+        <div class="section-title">
+          <h2>Products</h2>
+          <p>Check our Products</p>
+        </div>
 
-    <!-- Portfolio Filters -->
-    <div class="row" data-aos="fade-up" data-aos-delay="100">
-      <div class="col-lg-12 d-flex justify-content-center">
-        <ul id="portfolio-flters">
-          <li data-filter="*" class="filter-active">All</li>
+        <!-- Portfolio Filters -->
+        <div class="row" data-aos="fade-up" data-aos-delay="100">
+          <div class="col-lg-12 d-flex justify-content-center">
+            <ul id="portfolio-flters">
+              <li data-filter="*" class="filter-active">All</li>
+
+              <?php
+              // Fetch distinct brands for filters using PDO
+              $query = "SELECT DISTINCT brand_name FROM brands";
+              $stmt = $pdo->prepare($query);
+              $stmt->execute();
+              while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+                echo '<li data-filter=".filter-' . strtolower($row['brand_name']) . '">' . strtoupper($row['brand_name']) . '</li>';
+              }
+              ?>
+            </ul>
+          </div>
+        </div>
+
+        <!-- Portfolio Items -->
+        <div class="row portfolio-container" data-aos="fade-up" data-aos-delay="200">
 
           <?php
-          // Fetch distinct categories for filters using PDO
-          $query = "SELECT DISTINCT brand_name FROM brands";
+          // Query to fetch products with joined brands
+          $query = "SELECT p.*, b.brand_name FROM products p 
+                    JOIN brands b ON p.brand_id = b.brand_id
+                    LIMIT 5";
           $stmt = $pdo->prepare($query);
           $stmt->execute();
-          while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
-            echo '<li data-filter=".filter-' . strtolower($row['brand_name']) . '">' . strtoupper($row['brand_name']) . '</li>';
-          }
-          ?>
-        </ul>
-      </div>
-    </div>
 
-    <!-- Portfolio Items -->
-    <div class="row portfolio-container" data-aos="fade-up" data-aos-delay="200">
-
-      <?php
-      // Fetch products from the database using PDO
-      $query = "SELECT * FROM products LIMIT 5";
-      $stmt = $pdo->prepare($query);
-      $stmt->execute();
-
-      while ($product = $stmt->fetch(PDO::FETCH_ASSOC)) {
-        $categoryClass = strtolower($product['category_id']);
-        $brandClass = strtolower($product['brand_id']);
-        echo '
-        <div class="col-lg-4 col-md-6 portfolio-item filter-' . $categoryClass . ' filter-' . $brandClass . '">
-          <div class="portfolio-wrap">
-            <img src="assets/img/products/' . $product['product_image_url'] . '" class="img-fluid" alt="">
-            <div class="portfolio-info">
-              <h4>' . $product['product_id'] . '</h4>
-              <p>' . $product['product_desc'] . '</p>
-              <p><strong>Price: PHP' . $product['price'] . '</strong></p>
-              <div class="btn-group mt-3">
-                <button class="btn btn-primary add-to-cart" data-product-id="' . $product['product_id'] . '">Add to Cart</button>
-                <button class="btn btn-success buy-now" data-product-id="' . $product['product_id'] . '">Buy Now</button>
+          // Loop through products and display them
+          while ($product = $stmt->fetch(PDO::FETCH_ASSOC)) {
+            $brandClass = strtolower($product['brand_name']);
+            echo '
+            <div class="col-lg-4 col-md-6 portfolio-item filter-' . $brandClass . '">
+              <div class="portfolio-wrap">
+                <img src="uploads/products/'.$product['product_image_url'] . '" class="img-fluid" alt="Product Image">
+                <div class="portfolio-info">
+                  <h4>' . $product['brand_name'] . '</h4>
+                  <p>' . $product['product_desc'] . '</p>
+                  <p><strong>Price: $' . $product['price'] . '</strong></p>
+                  <div class="btn-group mt-3">
+                    <button class="btn btn-primary add-to-cart" data-product-id="' . $product['product_id'] . '">Add to Cart</button>
+                    <button class="btn btn-success buy-now" data-product-id="' . $product['product_id'] . '">Buy Now</button>
+                  </div>
+                </div>
               </div>
-            </div>
-          </div>
-        </div>';
-      }
+            </div>';
+          }
 
-      // Close the PDO connection
-      $pdo = null;
-      ?>
+          // Close the PDO connection
+          $pdo = null;
+          ?>
 
-    </div>
+        </div>
 
-  </div>
-</section>
-<!-- End Portfolio Section -->
+         <!-- See More Products Button -->
+         <div class="text-center mt-5">
+          <a href="agent_products.php" class="btn btn-outline-primary custom-btn">See More Products</a>
+        </div>
+
+      </div>
+    </section><!-- End Portfolio Section -->
 
 
     
