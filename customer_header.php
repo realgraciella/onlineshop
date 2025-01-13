@@ -25,6 +25,7 @@
         </li>
         <li class='dropdown'><a href='#'><span>MESSAGES</span></a>
           <ul>
+          <li><a href='customer_inbox.php'><span>Inbox</span></a></li>
             <li><a href='customer_inquiries.php'><span>Inquiries</span></a></li>
             <li><a href='customer_feedback.php'><span>Feedbacks</span></a></li>
           </ul>
