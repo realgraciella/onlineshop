@@ -27,12 +27,12 @@
             <ul>
               <li ><a href='agent_cart.php'><span>Cart</span></a></li>
               <li ><a href='agent_orders.php'><span>Orders</span></a></li>
-              <li ><a href='agent_.php'><span>Customer Order</span></a></li>
+              <li ><a href='agent_corders.php'><span>Customer Order</span></a></li>
             </ul>
           </li>          
           <li class='dropdown'><a href='#'><span>MESSAGES</span></a>
             <ul>
-              <li ><a href='agent_view_inquiries.php'><span>Inbox</span></a></li>
+              <li ><a href='agent_inbox.php'><span>Inbox</span></a></li>
               <li ><a href='agent_inquire.php'><span>Message</span></a></li>
             </ul>
           </li>

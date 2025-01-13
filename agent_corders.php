@@ -3,12 +3,12 @@ include('database/db_connect.php');
 // Start session and validate username
 session_start();
 if (!isset($_SESSION['username'])) {
-    die("User not logged in."); // Ensure only logged-in users can access
+    die("User  not logged in."); // Ensure only logged-in users can access
 }
 
 // Retrieve the logged-in username from the session
-$agent_username = $_SESSION['username'];
-var_dump($agent_username); // Debugging: Check if the username is set
+$client_username = $_SESSION['username'];
+var_dump($client_username); // Debugging: Check if the username is set
 
 // Database connection
 $conn = new mysqli("localhost", "root", "", "dmshop1");
@@ -16,23 +16,25 @@ if ($conn->connect_error) {
     die("Database connection failed: " . $conn->connect_error);
 }
 
-// Query to fetch orders for the logged-in user
+// Query to fetch orders for the logged-in customer
 $sql = "
     SELECT 
-        total_amount,
-        order_date,
+        order_id,
+        product_id,
+        variation_value,
+        price_per_variation,
+        quantity,
         order_status,
-        payment_method,
-        payment_status
-    FROM orders
-    WHERE username = ? 
+        order_date
+    FROM orders1
+    WHERE client_id = ? 
     ORDER BY order_date DESC";
 
 $stmt = $conn->prepare($sql);
 if (!$stmt) {
     die("Query preparation failed: " . $conn->error);
 }
-$stmt->bind_param('s', $agent_username);
+$stmt->bind_param('s', $client_username);
 $stmt->execute();
 $result = $stmt->get_result();
 
@@ -47,11 +49,10 @@ if ($result === false) {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>My Orders</title>
+    <title>My Customer Orders</title>
     <!-- Favicons -->
     <link href="assets/img/logo/2.png" rel="icon">
     
-
     <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css?family=Open+Sans:300,300i,400,400i,600,600i,700,700i|Raleway:300,300i,400,400i,500,500i,600,600i,700,700i" rel="stylesheet">
 
@@ -111,16 +112,18 @@ if ($result === false) {
 <?php include 'agent_header.php'; ?>
 
 <div class="order-container mt-5">
-    <h2 class="text-center">My Orders</h2>
+    <h2 class="text-center">My Customer Orders</h2>
     <div class="table-responsive">
         <table class="table table-bordered table-hover">
             <thead>
                 <tr>
-                    <th>Total Amount</th>
-                    <th>Order Date</th>
+                    <th>Order ID</th>
+                    <th>Product ID</th>
+                    <th>Variation</th>
+                    <th>Price per Variation</th>
+                    <th>Quantity</th>
                     <th>Order Status</th>
-                    <th>Payment Method</th>
-                    <th>Payment Status</th>
+                    <th>Order Date</th>
                 </tr>
             </thead>
             <tbody>
@@ -129,15 +132,17 @@ if ($result === false) {
                 if ($result->num_rows > 0) {
                     while ($row = $result->fetch_assoc()) {
                         echo "<tr>";
-                        echo "<td>" . number_format($row['total_amount'], 2) . "</td>";
-                        echo "<td>" . htmlspecialchars($row['order_date']) . "</td>";
+                        echo "<td>" . htmlspecialchars($row['order _id']) . "</td>";
+                        echo "<td>" . htmlspecialchars($row['product_id']) . "</td>";
+                        echo "<td>" . htmlspecialchars($row['variation_value']) . "</td>";
+                        echo "<td>" . number_format($row['price_per_variation'], 2) . "</td>";
+                        echo "<td>" . htmlspecialchars($row['quantity']) . "</td>";
                         echo "<td>" . htmlspecialchars($row['order_status']) . "</td>";
-                        echo "<td>" . htmlspecialchars($row['payment_method']) . "</td>";
-                        echo "<td>" . htmlspecialchars($row['payment_status']) . "</td>";
+                        echo "<td>" . htmlspecialchars($row['order_date']) . "</td>";
                         echo "</tr>";
                     }
                 } else {
-                    echo "<tr><td colspan='5' class='text-center'>No orders found.</td></tr>";
+                    echo "<tr><td colspan='7' class='text-center'>No orders found.</td></tr>";
                 }
                 ?>
             </tbody>
@@ -154,4 +159,4 @@ if ($result === false) {
 // Close the statement and connection
 $stmt->close();
 $conn->close();
-?>
+?> 
