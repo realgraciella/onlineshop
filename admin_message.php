@@ -115,11 +115,11 @@ try {
         <h1>Inbox</h1>
         <ul class="agent-list">
             <?php if (empty($agents)): ?>
- <li class="no-agents">No message found.</li>
+                <li class="no-agents">No message found.</li>
             <?php else: ?>
                 <?php foreach ($agents as $agent): ?>
                     <li>
-                        <a href="admin_message.php?agent_id=<?php echo $agent['agent_id']; ?>">
+                        <a href="admin_inbox.php?agent_id=<?php echo $agent['agent_id']; ?>">
                             <?php echo htmlspecialchars($agent['username']); ?>
                         </a>
                     </li>
