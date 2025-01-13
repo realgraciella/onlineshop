@@ -79,8 +79,8 @@
       </div>
     </section>
 
-    <!-- Portfolio Section -->
-    <section id="portfolio" class="portfolio">
+    <!-- ======= Portfolio Section ======= -->
+   <section id="portfolio" class="portfolio">
       <div class="container" data-aos="fade-up">
 
         <div class="section-title">
@@ -93,7 +93,9 @@
           <div class="col-lg-12 d-flex justify-content-center">
             <ul id="portfolio-flters">
               <li data-filter="*" class="filter-active">All</li>
+
               <?php
+              // Fetch distinct brands for filters using PDO
               $query = "SELECT DISTINCT brand_name FROM brands";
               $stmt = $pdo->prepare($query);
               $stmt->execute();
@@ -107,30 +109,26 @@
 
         <!-- Portfolio Items -->
         <div class="row portfolio-container" data-aos="fade-up" data-aos-delay="200">
+
           <?php
+          // Query to fetch products with joined brands
           $query = "SELECT p.*, b.brand_name FROM products p 
                     JOIN brands b ON p.brand_id = b.brand_id
-                    LIMIT 10";
+                    LIMIT 5";
           $stmt = $pdo->prepare($query);
           $stmt->execute();
 
+          // Loop through products and display them
           while ($product = $stmt->fetch(PDO::FETCH_ASSOC)) {
             $brandClass = strtolower($product['brand_name']);
-            $imagePath = 'uploads/products/' . $product['product_image_url'];
-
-            // Check if product image exists, if not use default
-            if (!file_exists($imagePath)) {
-              $imagePath = 'assets/img/default-image.png';
-            }
-            
             echo '
             <div class="col-lg-4 col-md-6 portfolio-item filter-' . $brandClass . '">
               <div class="portfolio-wrap">
-                <img src="' . $imagePath . '" class="img-fluid" alt="Product Image">
+                <img src="uploads/products/'.$product['product_image_url'] . '" class="img-fluid" alt="Product Image">
                 <div class="portfolio-info">
-                  <h4>' . htmlspecialchars($product['brand_name']) . '</h4>
-                  <p>' . htmlspecialchars($product['product_desc']) . '</p>
-                  <p><strong>Price: PHP ' . number_format(htmlspecialchars($product['price']), 2) . '</strong></p>
+                  <h4>' . $product['brand_name'] . '</h4>
+                  <p>' . $product['product_desc'] . '</p>
+                  <p><strong>Price: $' . $product['price'] . '</strong></p>
                   <div class="btn-group mt-3">
                     <button class="btn btn-primary add-to-cart" data-product-id="' . $product['product_id'] . '">Add to Cart</button>
                     <button class="btn btn-success buy-now" data-product-id="' . $product['product_id'] . '">Buy Now</button>
@@ -140,17 +138,19 @@
             </div>';
           }
 
+          // Close the PDO connection
           $pdo = null;
           ?>
+
         </div>
 
-        <!-- See More Products Button -->
-        <div class="text-center mt-5">
-          <a href="agent_products.php" class="btn btn-outline-primary custom-btn">See More Products</a>
+         <!-- See More Products Button -->
+         <div class="text-center mt-5">
+          <a href="customer_products.php" class="btn btn-outline-primary custom-btn">See More Products</a>
         </div>
 
       </div>
-    </section>
+    </section><!-- End Portfolio Section -->
 
     <!-- Contact Section -->
     <section id="contact" class="contact">
