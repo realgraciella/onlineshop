@@ -115,7 +115,7 @@ try {
         <h1>Inbox</h1>
         <ul class="agent-list">
             <?php if (empty($agents)): ?>
- <li class="no-agents">No agents found.</li>
+ <li class="no-agents">No message found.</li>
             <?php else: ?>
                 <?php foreach ($agents as $agent): ?>
                     <li>
