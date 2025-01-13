@@ -312,36 +312,30 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
 
             // Show modal with product details and variations
-            function showProductModal(productName) {
-            selectedProductName = productName;
-            const modal = new bootstrap.Modal(document.getElementById('productModal'));
-            modal.show();
+function showProductModal(productName) {
+    selectedProductName = productName;
+    const modal = new bootstrap.Modal(document.getElementById('productModal'));
+    modal.show();
 
-            // Fetch product variations
-                fetch(`get_variations.php?product_name=${productName}`)
-                    .then(response => response.json())
-                    .then(variations => {
-                        const variationSelect = document.getElementById('variationSelect');
-                        variationSelect.innerHTML = `<option value="">Select variation</option>`;
-                        variations.forEach(variation => {
-                            variationSelect.innerHTML += `<option value="${variation.variation_id}">${variation.variation_value}</option>`;
-                        });
-
-                        // Automatically add to checkout if there's only one variation
-                        if (variations.length === 1) {
-                            variationSelect.value = variations[0].variation_id; // Set the selected variation
-                            addToList(); // Automatically add to the checkout list
-                        }
-                    })
-                    .catch(error => {
-                        console.error('Error fetching variations:', error);
-                        Swal.fire({
-                            icon: 'error',
-                            title: 'Error',
-                            text: 'Could not fetch product variations.'
-                        });
-                    });
-            }
+    // Fetch product variations
+    fetch(`get_variations.php?product_name=${productName}`)
+        .then(response => response.json())
+        .then(variations => {
+            const variationSelect = document.getElementById('variationSelect');
+            variationSelect.innerHTML = `<option value="">Select variation</option>`;
+            variations.forEach(variation => {
+                variationSelect.innerHTML += `<option value="${variation.variation_id}">${variation.variation_value}</option>`;
+            });
+        })
+        .catch(error => {
+            console.error('Error fetching variations:', error);
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: 'Could not fetch product variations.'
+            });
+        });
+}
             // Adjust quantity for the modal
             function adjustQuantity(amount) {
                 const quantityDisplay = document.getElementById('quantityDisplay');
@@ -352,60 +346,63 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
 
             // Add product to checkout list
-            function addToList() {
-                const variationSelect = document.getElementById('variationSelect');
-                const variationId = variationSelect.value;
-                const variationText = variationSelect.options[variationSelect.selectedIndex].text;
-                const quantity = parseInt(document.getElementById('quantityDisplay').textContent);
+function addToList() {
+    const variationSelect = document.getElementById('variationSelect');
+    const variationId = variationSelect.value;
+    const variationText = variationSelect.options[variationSelect.selectedIndex].text;
+    const quantity = parseInt(document.getElementById('quantityDisplay').textContent);
 
-                const selectedProduct = <?php echo json_encode($products); ?>.find(product => product.product_name === selectedProductName);
+    const selectedProduct = <?php echo json_encode($products); ?>.find(product => product.product_name === selectedProductName);
 
-                if (selectedProduct) {
-                    // Fetch the variations again to get the price of the selected variation
-                    fetch(`get_variations.php?product_name=${selectedProductName}`)
-                        .then(response => response.json())
-                        .then(variations => {
-                            const selectedVariation = variations.find(variation => variation.variation_id == variationId);
-                            if (selectedVariation) {
-                                const productPrice = parseFloat(selectedVariation.price); // Get the price from the selected variation
+    if (selectedProduct) {
+        // Fetch the variations again to get the price of the selected variation
+        fetch(`get_variations.php?product_name=${selectedProductName}`)
+            .then(response => response.json())
+            .then(variations => {
+                const selectedVariation = variations.find(variation => variation.variation_id == variationId);
+                if (selectedVariation) {
+                    const productPrice = parseFloat(selectedVariation.price); // Get the price from the selected variation
 
-                                // Check if productPrice is a valid number
-                                if (isNaN(productPrice)) {
-                                    Swal.fire({
-                                        icon: 'error',
-                                        title: 'Error',
-                                        text: 'Invalid price for the selected variation.'
-                                    });
-                                    return;
-                                }
-
-                                // Add to checkout list
-                                checkoutList.push({ 
-                                    productName: selectedProductName, 
-                                    variation: variationText, 
-                                    quantity, 
-                                    price: productPrice, // Use the price from the selected variation
-                                    variationId // Include variation_id
-                                });
-                                updateCheckoutList();
-                            } else {
-                                Swal.fire({
-                                    icon: 'warning',
-                                    title: 'Variation Required',
-                                    text: 'Please select a valid variation before adding to the checkout list.'
-                                });
-                            }
-                        })
-                        .catch(error => {
-                            console.error('Error fetching variations:', error);
-                            Swal.fire({
-                                icon: 'error',
-                                title: 'Error',
-                                text: 'Could not fetch product variations.'
-                            });
+                    // Check if productPrice is a valid number
+                    if (isNaN(productPrice)) {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Error',
+                            text: 'Invalid price for the selected variation.'
                         });
+                        return;
+                    }
+
+                    // Add to checkout list
+                    checkoutList.push({ 
+                        productName: selectedProductName, 
+                        variation: variationText, 
+                        quantity, 
+                        price: productPrice, // Use the price from the selected variation
+                        variationId // Include variation_id
+                    });
+                    updateCheckoutList();
+                    // Close the modal after adding to the list
+                    const modal = bootstrap.Modal.getInstance(document.getElementById('productModal'));
+                    modal.hide();
+                } else {
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'Variation Required',
+                        text: 'Please select a valid variation before adding to the checkout list.'
+                    });
                 }
-            }
+            })
+            .catch(error => {
+                console.error('Error fetching variations:', error);
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: 'Could not fetch product variations.'
+                });
+            });
+    }
+}
 
             // Update checkout list UI
             function updateCheckoutList() {

@@ -458,7 +458,7 @@ $salesDataJson2 = json_encode($salesData2);
                     <?php else: ?>
                         <?php foreach ($mostPurchasedStoreProducts as $product): ?>
                             <li class="list-group-item">
-                                <?php echo htmlspecialchars($product['product_name'] ?? 'Unknown Product'); ?> - 
+                                <?php echo htmlspecialchars($product['product_name'] ?? 'Product'); ?> - 
                                 <?php echo (int)($product['total_quantity'] ?? 0); ?>
                             </li>
                         <?php endforeach; ?>
