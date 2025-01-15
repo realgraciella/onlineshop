@@ -172,7 +172,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         .checkout-list {
             position: fixed;
             right: 20px;
-            top: 80px;
+            top: 270px;
             width: 25%;
             padding: 20px;
             background-color: white;
