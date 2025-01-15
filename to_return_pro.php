@@ -11,10 +11,10 @@ if ($conn->connect_error) {
 }
 
 // Fetch products grouped by agent_username
-$sql = "SELECT tp.username, tp.product_id, tp.product_value, tp.price_per_variation, tp.quantity, tp.total_amount,tp.sale_date, tp.due_date, p.product_name 
+$sql = "SELECT tp.agent_username, tp.product_id, tp.product_value, tp.price_per_variation, tp.quantity, tp.total_amount,tp.sale_date, tp.due_date, p.product_name 
         FROM to_return_products tp 
         JOIN products p ON tp.product_id = p.product_id 
-        GROUP BY tp.username, tp.product_id";
+        GROUP BY tp.agent_username, tp.product_id";
 $result = $conn->query($sql);
 ?>
 
@@ -61,8 +61,8 @@ $result = $conn->query($sql);
                 <?php while ($row = $result->fetch_assoc()): ?>
                     <tr>
                         <td>
-                            <a href="#" data-toggle="modal" data-target="#returnModal" data-username="<?php echo $row['username']; ?>" data-product-id="<?php echo $row['product_id']; ?>" data-product-value="<?php echo $row['product_value']; ?>" data-price-per-variation="<?php echo $row['price_per_variation']; ?>" data-quantity="<?php echo $row['quantity']; ?>">
-                                <?php echo $row['username']; ?>
+                            <a href="#" data-toggle="modal" data-target="#returnModal" data-username="<?php echo $row['agent_username']; ?>" data-product-id="<?php echo $row['product_id']; ?>" data-product-value="<?php echo $row['product_value']; ?>" data-price-per-variation="<?php echo $row['price_per_variation']; ?>" data-quantity="<?php echo $row['quantity']; ?>">
+                                <?php echo $row['agent_username']; ?>
                             </a>
                         </td>
                         <td><?php echo $row['product_name']; ?></td>
@@ -125,7 +125,7 @@ $result = $conn->query($sql);
 <script>
     $('#returnModal').on('show.bs.modal', function (event) {
         var button = $(event.relatedTarget);
-        var username = button.data('username');
+        var username = button.data('agent_username');
         var productId = button.data('product-id');
         var productValue = button.data('product-value');
         var pricePerVariation = button.data('price-per-variation');
