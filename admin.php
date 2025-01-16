@@ -39,7 +39,7 @@ $query = "
     SELECT 
         SUM(total_amount) AS monthly_store_sales 
     FROM store_sales 
-    WHERE sale_date >= CURDATE() - INTERVAL 1 MONTH;
+    WHERE sale_date >= CURDATE() - INTERVAL 1 MONTH ;
 
     -- Annual sales (from both sales and store_sales tables)
     SELECT 
@@ -279,9 +279,9 @@ $salesDataJson2 = json_encode($salesData2);
         color: #444;
     }
     #dashboard {
-        padding: 40px 20px;
+        padding: 30px 20px;
         text-align: center;
-        margin: 50px auto;
+        margin: 30px auto;
     }
     .metric {
         display: flex;
@@ -377,39 +377,39 @@ $salesDataJson2 = json_encode($salesData2);
       <h2 class="mb-4">Dashboard</h2>
       <div class="container">
         <div class="row">
-        <div class="col-md-3">
-            <div class="metric">
-                <h5>Weekly Sales</h5>
-                <p class="<?php echo $weeklyIndicatorClass; ?>">
-                    <?php echo $currentWeeklySales; ?>
-                    <span class="indicator"><?php echo $currentWeeklySales > $previousWeeklyTotal ? '↑' : '↓'; ?></span>
-                </p>
+            <div class="col-md-4">
+                <div class="metric">
+                    <h5>Weekly Sales</h5>
+                    <p class="<?php echo $weeklyIndicatorClass; ?>">PHP
+                        <?php echo number_format($currentWeeklySales); ?>
+                        <span class="indicator"><?php echo $currentWeeklySales > $previousWeeklyTotal ? '↑' : '↓'; ?></span>
+                    </p>
+                </div>
             </div>
-        </div>
-        <div class="col-md-3">
-            <div class="metric">
-                <h5>Monthly Sales</h5>
-                <p class="<?php echo $monthlyIndicatorClass; ?>">
-                    <?php echo $currentMonthlySales; ?>
-                    <span class="indicator"><?php echo $currentMonthlySales > $previousMonthlyTotal ? '↑' : '↓'; ?></span>
-                </p>
+            <div class="col-md-4">
+                <div class="metric">
+                    <h5>Monthly Sales</h5>
+                    <p class="<?php echo $monthlyIndicatorClass; ?>"> PHP
+                        <?php echo number_format($currentMonthlySales); ?>
+                        <span class="indicator"><?php echo $currentMonthlySales > $previousMonthlyTotal ? '↑' : '↓'; ?></span>
+                    </p>
+                </div>
             </div>
-        </div>
-        <div class="col-md-3">
-            <div class="metric">
-                <h5>Annual Sales</h5>
-                <p class="<?php echo $annualIndicatorClass; ?>">
-                    <?php echo $currentAnnualSales; ?>
-                    <span class="indicator"><?php echo $currentAnnualSales > $previousAnnualTotal ? '↑' : '↓'; ?></span>
-                </p>
+            <div class="col-md-4">
+                <div class="metric">
+                    <h5>Annual Sales</h5>
+                    <p class="<?php echo $annualIndicatorClass; ?>">PHP
+                        <?php echo number_format($currentAnnualSales); ?>
+                        <span class="indicator"><?php echo $currentAnnualSales > $previousAnnualTotal ? '↑' : '↓'; ?></span>
+                    </p>
+                </div>
             </div>
-        </div>
-          <div class="col-md-3">
-            <div class="metric">
-              <h5>Active Agents</h5>
-              <p><?php echo (int)$activeAgentsCount; ?></p>
+            <div class="col-md-3">
+                <div class="metric">
+                    <h5>Active Agents</h5>
+                    <p><?php echo (int)$activeAgentsCount; ?></p>
+                </div>
             </div>
-          </div>
         </div>
         <div class="row">
         <div class="col-md-8">
@@ -559,6 +559,28 @@ $salesDataJson2 = json_encode($salesData2);
     }
   });
 
+  function formatDate(dateString) {
+    const date = new Date(dateString);
+    const options = { month: 'long', day: 'numeric', year: 'numeric' };
+    return date.toLocaleDateString('en-US', options);
+  }
+
+  function formatAnnualDate(dateString) {
+    const date = new Date(dateString);
+    return date.getFullYear(); // Return only the year
+  }
+
+  function formatQuarterlyDate(dateString) {
+      const date = new Date(dateString);
+      const options = { month: 'long', year: 'numeric' };
+      return date.toLocaleDateString('en-US', options); // Return month and year
+  }
+
+  function formatMonthlyDate(dateString) {
+      const date = new Date(dateString);
+      const options = { month: 'long' };
+      return date.toLocaleDateString('en-US', options); // Return only the month
+  }
   // Handle sales filter selection
   document.getElementById('salesFilter').addEventListener('change', function(event) {
     const selectedFilter = event.target.value;
@@ -566,26 +588,26 @@ $salesDataJson2 = json_encode($salesData2);
     let newLabels = [];
 
     if (selectedFilter === 'weekly') {
-      newLabels = salesData.weekly.map(item => item.date);
-      filteredData = salesData.weekly.map(item => item.total);
+        newLabels = salesData.weekly.map(item => formatDate(item.date)); // Keep the original format for weekly
+        filteredData = salesData.weekly.map(item => item.total);
     } else if (selectedFilter === 'monthly') {
-      newLabels = salesData.monthly.map(item => item.date);
-      filteredData = salesData.monthly.map(item => item.total);
+        newLabels = salesData.monthly.map(item => formatMonthlyDate(item.date)); // Format for monthly
+        filteredData = salesData.monthly.map(item => item.total);
     } else if (selectedFilter === 'quarterly') {
-      newLabels = salesData.quarterly.map(item => item.month);
-      filteredData = salesData.quarterly.map(item => item.total);
+        newLabels = salesData.quarterly.map(item => formatQuarterlyDate(item.month)); // Format for quarterly
+        filteredData = salesData.quarterly.map(item => item.total);
     } else if (selectedFilter === 'annual') {
-      newLabels = salesData.annual.map(item => item.month);
-      filteredData = salesData.annual.map(item => item.total);
+        newLabels = salesData.annual.map(item => formatAnnualDate(item.month)); // Format for annual
+        filteredData = salesData.annual.map(item => item.total);
     } else {
-      newLabels = ['Weekly', 'Monthly', 'Quarterly', 'Annual'];
-      filteredData = salesData.all.map(item => item.total);
+        newLabels = ['Weekly', 'Monthly', 'Quarterly', 'Annual'];
+        filteredData = salesData.all.map(item => item.total);
     }
 
     salesLineChart.data.labels = newLabels;
     salesLineChart.data.datasets[0].data = filteredData;
     salesLineChart.update();
-  });
+});
 </script>
 
 

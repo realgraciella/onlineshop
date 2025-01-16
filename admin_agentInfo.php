@@ -387,7 +387,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                                 <td><?= htmlspecialchars($row['role']); ?></td>
                                 <td><?= htmlspecialchars($row['agent_status']); ?></td>
                                 <td><?= htmlspecialchars($row['credit_limit']); ?></td>
-                                <td><a href="javascript:void(0);" onclick="showModal('uploads/IDs/<?= htmlspecialchars($row['id_image_url']); ?>')">View</a></td>
+                                <td><a href="javascript:void(0);" onclick="showModal('<?= htmlspecialchars('uploads/IDs/'.$row['id_image_url']); ?>')">View</a></td>
                                 <td>
                                     <a href="javascript:void(0);" class="edit-button" onclick="openEditModal(<?= htmlspecialchars($row['agent_id']); ?>)">Edit</a>
                                 </td>
