@@ -117,6 +117,17 @@ $query = "
     GROUP BY product_id
     ORDER BY total_quantity DESC
     LIMIT 5;
+
+    -- Unsettled Amount
+    SELECT SUM(total_amount) AS unsettled_amount FROM orders WHERE payment_status = 'Unpaid';
+
+    -- Top Brand for the Month
+    SELECT brand_name, SUM(total_amount) AS total_sales 
+    FROM store_sales 
+    WHERE sale_date >= CURDATE() - INTERVAL 1 MONTH 
+    GROUP BY brand_name 
+    ORDER BY total_sales DESC 
+    LIMIT 1;
 ";
 $stmt = $pdo->prepare($query);
 $stmt->execute();
@@ -244,6 +255,31 @@ $salesData2['all'] = array_merge($salesData2['weekly'], $salesData2['monthly'], 
 
 $salesDataJson2 = json_encode($salesData2);
 
+// Unsettled Amount
+$stmt = $pdo->prepare("SELECT SUM(total_amount) AS unsettled_amount FROM orders WHERE payment_status = 'Unpaid'");
+$stmt->execute();
+$unsettledAmount = $stmt->fetchColumn() ?: 0;
+
+// Top Brand for the Month
+$stmt = $pdo->prepare("
+    SELECT b.brand_name, SUM(ss.total_amount) AS total_sales 
+    FROM store_sales ss
+    JOIN products p ON ss.product_id = p.product_id
+    JOIN brands b ON p.brand_id = b.brand_id
+    WHERE ss.sale_date >= CURDATE() - INTERVAL 1 MONTH 
+    GROUP BY b.brand_id 
+    ORDER BY total_sales DESC 
+    LIMIT 1;
+");
+
+function formatSales($number) {
+  if ($number >= 1000) {
+      return number_format($number / 1000, 1) . 'K'; // Format as thousands
+  }
+  return number_format($number); // Return as is for numbers less than 1000
+}
+$stmt->execute();
+$topBrand = $stmt->fetch(PDO::FETCH_ASSOC);
 ?>
 
 <!DOCTYPE html>
@@ -377,40 +413,49 @@ $salesDataJson2 = json_encode($salesData2);
       <h2 class="mb-4">Dashboard</h2>
       <div class="container">
         <div class="row">
-            <div class="col-md-4">
-                <div class="metric">
-                    <h5>Weekly Sales</h5>
-                    <p class="<?php echo $weeklyIndicatorClass; ?>">PHP
-                        <?php echo number_format($currentWeeklySales); ?>
-                        <span class="indicator"><?php echo $currentWeeklySales > $previousWeeklyTotal ? '↑' : '↓'; ?></span>
-                    </p>
-                </div>
+        <div class="col-md-4">
+            <div class="metric">
+                <h5>Weekly Sales</h5>
+                <p class="<?php echo $weeklyIndicatorClass; ?>">PHP
+                    <?php echo formatSales($currentWeeklySales); ?>
+                    <span class="indicator"><?php echo $currentWeeklySales > $previousWeeklyTotal ? '↑' : '↓'; ?></span>
+                </p>
             </div>
-            <div class="col-md-4">
-                <div class="metric">
-                    <h5>Monthly Sales</h5>
-                    <p class="<?php echo $monthlyIndicatorClass; ?>"> PHP
-                        <?php echo number_format($currentMonthlySales); ?>
-                        <span class="indicator"><?php echo $currentMonthlySales > $previousMonthlyTotal ? '↑' : '↓'; ?></span>
-                    </p>
-                </div>
+        </div>
+        <div class="col-md-4">
+            <div class="metric">
+                <h5>Monthly Sales</h5>
+                <p class="<?php echo $monthlyIndicatorClass; ?>"> PHP
+                    <?php echo formatSales($currentMonthlySales); ?>
+                    <span class="indicator"><?php echo $currentMonthlySales > $previousMonthlyTotal ? '↑' : '↓'; ?></span>
+                </p>
             </div>
-            <div class="col-md-4">
-                <div class="metric">
-                    <h5>Annual Sales</h5>
-                    <p class="<?php echo $annualIndicatorClass; ?>">PHP
-                        <?php echo number_format($currentAnnualSales); ?>
-                        <span class="indicator"><?php echo $currentAnnualSales > $previousAnnualTotal ? '↑' : '↓'; ?></span>
-                    </p>
-                </div>
+        </div>
+        <div class="col-md-4">
+            <div class="metric">
+                <h5>Annual Sales</h5>
+                <p class="<?php echo $annualIndicatorClass; ?>">PHP
+                    <?php echo formatSales($currentAnnualSales); ?>
+                    <span class="indicator"><?php echo $currentAnnualSales > $previousAnnualTotal ? '↑' : '↓'; ?></span>
+                </p>
             </div>
-            <div class="col-md-3">
-                <div class="metric">
+        </div>
+        <div class="col-md-4">
+              <div class="metric">
                     <h5>Active Agents</h5>
                     <p><?php echo (int)$activeAgentsCount; ?></p>
+              </div>
+        </div>
+            <div class="row">
+                <div class="col-md-4">
+                    <div class="metric">
+                        <h5>Unsettled Amount</h5>
+                        <p class="text-danger">PHP <?php echo number_format($unsettledAmount); ?></p>
+                    </div>
                 </div>
             </div>
         </div>
+
         <div class="row">
         <div class="col-md-8">
           <div class="sales-chart">
