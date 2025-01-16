@@ -49,7 +49,7 @@ $stmt = $pdo->query($sql);
                     <h3><?php echo $row['product_name']; ?></h3>
                     <p>Brand: <?php echo $row['brand_name']; ?></p>
                     <p>Category: <?php echo $row['category_name']; ?></p>
-                    <p>Price: $<?php echo number_format($row['price'], 2); ?></p>
+                    <p>Price: PHP <?php echo number_format($row['price'], 2); ?></p>
                     <p>Stock: <?php echo $row['stock_level']; ?> items</p>
                     <button class="add-to-cart" onclick="addToCart(<?php echo $row['product_id']; ?>)">Add to Cart</button>
                     <button class="buy-now" onclick="buyNow(<?php echo $row['product_id']; ?>)">Buy Now</button>
