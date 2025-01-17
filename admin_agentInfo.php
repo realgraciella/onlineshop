@@ -387,7 +387,14 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                                 <td><?= htmlspecialchars($row['role']); ?></td>
                                 <td><?= htmlspecialchars($row['agent_status']); ?></td>
                                 <td><?= htmlspecialchars($row['credit_limit']); ?></td>
-                                <td><a href="javascript:void(0);" onclick="showModal('<?= htmlspecialchars('uploads/IDs/'.$row['id_image_url']); ?>')">View</a></td>
+                                <td>
+                                    <a href="javascript:void(0);" 
+                                    onclick="showModal(
+                                        'data:image/jpeg;base64,<?= base64_encode($row['id_front_image']); ?>',
+                                        'data:image/jpeg;base64,<?= base64_encode($row['id_back_image']); ?>'
+                                    )">View</a>
+                                </td>
+
                                 <td>
                                     <a href="javascript:void(0);" class="edit-button" onclick="openEditModal(<?= htmlspecialchars($row['agent_id']); ?>)">Edit</a>
                                 </td>
@@ -405,7 +412,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     <div id="myModal" class="modal">
         <div class="modal-content">
             <span class="close" onclick="closeModal()">&times;</span>
-            <img id="modalImage" src="" alt="Agent ID Image" style="width: 100%;">
+            <img id="modalFrontImage" src="" alt="Agent ID Front Image" style="width: 200px; height: 200px; margin-bottom: 10px;">
+            <img id="modalBackImage" src="" alt="Agent ID Back Image" style="width: 200px; height: 200px">
         </div>
     </div>
 
@@ -475,12 +483,16 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         });
 
         // Function to show modal for ID image
-        function showModal(imagePath) {
+        function showModal(frontImagePath, backImagePath) {
             var modal = document.getElementById('myModal');
-            var modalImage = document.getElementById('modalImage');
+            var modalFrontImage = document.getElementById('modalFrontImage');
+            var modalBackImage = document.getElementById('modalBackImage');
+            
             modal.style.display = 'block';
-            modalImage.src = imagePath;
+            modalFrontImage.src = frontImagePath;
+            modalBackImage.src = backImagePath;
         }
+
 
         // Function to close the modal
         function closeModal() {
