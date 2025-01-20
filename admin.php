@@ -4,14 +4,28 @@ ini_set('display_errors', 1);
 
 include 'database/db_connect.php'; // Database connection
 
+// Fetch distinct months and years from sales
+$monthsQuery = "SELECT DISTINCT MONTH(sale_date) AS month FROM store_sales ORDER BY month";
+$yearsQuery = "SELECT DISTINCT YEAR(sale_date) AS year FROM store_sales ORDER BY year DESC";
+
+$monthsStmt = $pdo->prepare($monthsQuery);
+$monthsStmt->execute();
+$months = $monthsStmt->fetchAll(PDO::FETCH_ASSOC);
+
+$yearsStmt = $pdo->prepare($yearsQuery);
+$yearsStmt->execute();
+$years = $yearsStmt->fetchAll(PDO::FETCH_ASSOC);
+
+$selectedMonth = isset($_GET['month']) ? (int)$_GET['month'] : null;
+$selectedYear = isset($_GET['year']) ? (int)$_GET['year'] : null;
 
 // Combined database query to optimize data fetching
 $query = "
-    -- Top 3 Agents with highest sales in the last month
+    -- Top 3 Agents with highest sales in the selected month
     SELECT agent_fname, agent_lname, SUM(sale_amount) AS total_sales 
     FROM agents 
     JOIN sales ON agents.agent_id = sales.agent_id 
-    WHERE sale_date >= CURDATE() - INTERVAL 1 MONTH
+    WHERE (sale_date >= CURDATE() - INTERVAL 1 MONTH OR (MONTH(sale_date) = :month AND YEAR(sale_date) = :year))
     GROUP BY agents.agent_id 
     HAVING total_sales > 0
     ORDER BY total_sales DESC LIMIT 3;
@@ -23,34 +37,34 @@ $query = "
     SELECT 
         SUM(sale_amount) AS weekly_sales 
     FROM sales 
-    WHERE sale_date >= CURDATE() - INTERVAL 7 DAY;
+    WHERE (sale_date >= CURDATE() - INTERVAL 7 DAY OR (MONTH(sale_date) = :month AND YEAR(sale_date) = :year));
 
     SELECT 
         SUM(total_amount) AS weekly_store_sales 
     FROM store_sales 
-    WHERE sale_date >= CURDATE() - INTERVAL 7 DAY;
+    WHERE (sale_date >= CURDATE() - INTERVAL 7 DAY OR (MONTH(sale_date) = :month AND YEAR(sale_date) = :year));
 
     -- Monthly sales (from both sales and store_sales tables)
     SELECT 
         SUM(sale_amount) AS monthly_sales 
     FROM sales 
-    WHERE sale_date >= CURDATE() - INTERVAL 1 MONTH;
+    WHERE (sale_date >= CURDATE() - INTERVAL 1 MONTH OR (MONTH(sale_date) = :month AND YEAR(sale_date) = :year));
 
     SELECT 
         SUM(total_amount) AS monthly_store_sales 
     FROM store_sales 
-    WHERE sale_date >= CURDATE() - INTERVAL 1 MONTH ;
+    WHERE (sale_date >= CURDATE() - INTERVAL 1 MONTH OR (MONTH(sale_date) = :month AND YEAR(sale_date) = :year));
 
     -- Annual sales (from both sales and store_sales tables)
     SELECT 
         SUM(sale_amount) AS annual_sales 
     FROM sales 
-    WHERE sale_date >= CURDATE() - INTERVAL 1 YEAR;
+    WHERE (sale_date >= CURDATE() - INTERVAL 1 YEAR OR (MONTH(sale_date) = :month AND YEAR(sale_date) = :year));
 
     SELECT 
         SUM(total_amount) AS annual_store_sales 
     FROM store_sales 
-    WHERE sale_date >= CURDATE() - INTERVAL 1 YEAR;
+    WHERE (sale_date >= CURDATE() - INTERVAL 1 YEAR OR (MONTH(sale_date) = :month AND YEAR(sale_date) = :year));
 
     -- Low stock count
     SELECT product_name, stock_level FROM products WHERE stock_level < 10;
@@ -67,55 +81,67 @@ $query = "
     SELECT 
         (SELECT COUNT(*) FROM client_inquiries) + 
         (SELECT COUNT(*) FROM agent_inquiries) AS total_inquiries_count;
+
     -- Previous weekly sales
     SELECT 
         SUM(sale_amount) AS previous_weekly_sales 
     FROM sales 
-    WHERE sale_date >= CURDATE() - INTERVAL 14 DAY AND sale_date < CURDATE() - INTERVAL 7 DAY;
+    WHERE (sale_date >= CURDATE() - INTERVAL 14 DAY AND sale_date < CURDATE() - INTERVAL 7 DAY OR (MONTH(sale_date) = :month AND YEAR(sale_date) = :year));
 
     SELECT 
         SUM(total_amount) AS previous_weekly_store_sales 
     FROM store_sales 
-    WHERE sale_date >= CURDATE() - INTERVAL 14 DAY AND sale_date < CURDATE() - INTERVAL 7 DAY;
+    WHERE (sale_date >= CURDATE() - INTERVAL 14 DAY AND sale_date < CURDATE() - INTERVAL 7 DAY OR (MONTH(sale_date) = :month AND YEAR(sale_date) = :year));
 
     -- Previous monthly sales
     SELECT 
         SUM(sale_amount) AS previous_monthly_sales 
     FROM sales 
-    WHERE sale_date >= CURDATE() - INTERVAL 2 MONTH AND sale_date < CURDATE() - INTERVAL 1 MONTH;
+    WHERE (sale_date >= CURDATE() - INTERVAL 2 MONTH AND sale_date < CURDATE() - INTERVAL 1 MONTH OR (MONTH(sale_date) = :month AND YEAR(sale_date) = :year));
 
     SELECT 
         SUM(total_amount) AS previous_monthly_store_sales 
     FROM store_sales 
-    WHERE sale_date >= CURDATE() - INTERVAL 2 MONTH AND sale_date < CURDATE() - INTERVAL 1 MONTH;
+    WHERE (sale_date >= CURDATE() - INTERVAL 2 MONTH AND sale_date < CURDATE() - INTERVAL 1 MONTH OR (MONTH(sale_date) = :month AND YEAR(sale_date) = :year));
 
     -- Previous annual sales
     SELECT 
         SUM(sale_amount) AS previous_annual_sales 
     FROM sales 
-    WHERE sale_date >= CURDATE() - INTERVAL 2 YEAR AND sale_date < CURDATE() - INTERVAL 1 YEAR;
+    WHERE (sale_date >= CURDATE() - INTERVAL 2 YEAR AND sale_date < CURDATE() - INTERVAL 1 YEAR OR (MONTH(sale_date) = :month AND YEAR(sale_date) = :year));
 
     SELECT 
         SUM(total_amount) AS previous_annual_store_sales 
     FROM store_sales 
-    WHERE sale_date >= CURDATE() - INTERVAL 2 YEAR AND sale_date < CURDATE() - INTERVAL 1 YEAR;
+    WHERE (sale_date >= CURDATE() - INTERVAL 2 YEAR AND sale_date < CURDATE() - INTERVAL 1 YEAR OR (MONTH(sale_date) = :month AND YEAR(sale_date) = :year));
 
     -- Quarterly sales (from both sales and store_sales tables)
     SELECT 
         SUM(sale_amount) AS quarterly_sales 
     FROM sales 
-    WHERE sale_date >= CURDATE() - INTERVAL 3 MONTH;
+    WHERE (sale_date >= CURDATE() - INTERVAL 3 MONTH OR (MONTH(sale_date) = :month AND YEAR(sale_date) = :year));
 
     SELECT 
         SUM(total_amount) AS quarterly_store_sales 
     FROM store_sales 
-    WHERE sale_date >= CURDATE() - INTERVAL 3 MONTH;
+    WHERE (sale_date >= CURDATE() - INTERVAL 3 MONTH OR (MONTH(sale_date) = :month AND YEAR(sale_date) = :year));
 
-    -- Most purchased products
-    SELECT product_name, SUM(quantity) AS total_quantity
+    -- Most purchased products based on product_id
+    SELECT product_id, product_name, SUM(quantity) AS total_quantity
     FROM store_sales
+    JOIN products ON store_sales.product_id = products.product_id
+    WHERE (MONTH(sale_date) = :month AND YEAR(sale_date) = :year)
     GROUP BY product_id
     ORDER BY total_quantity DESC
+    LIMIT 5;
+
+    -- Least purchased products based on product_id
+    SELECT product_id, product_name, SUM(quantity) AS total_quantity
+    FROM store_sales
+    JOIN products ON store_sales.product_id = products.product_id
+    WHERE (MONTH(sale_date) = :month AND YEAR(sale_date) = :year)
+    GROUP BY product_id
+    ORDER BY total_quantity ASC
     LIMIT 5;
 
     -- Unsettled Amount
@@ -124,12 +150,20 @@ $query = "
     -- Top Brand for the Month
     SELECT brand_name, SUM(total_amount) AS total_sales 
     FROM store_sales 
-    WHERE sale_date >= CURDATE() - INTERVAL 1 MONTH 
+    WHERE (sale_date >= CURDATE() - INTERVAL 1 MONTH OR (MONTH(sale_date) = :month AND YEAR(sale_date) = :year))
     GROUP BY brand_name 
     ORDER BY total_sales DESC 
     LIMIT 1;
 ";
+
+// Prepare the statement
 $stmt = $pdo->prepare($query);
+
+// Bind parameters for month and year
+$stmt->bindParam(':month', $selectedMonth, PDO::PARAM_INT);
+$stmt->bindParam(':year', $selectedYear, PDO::PARAM_INT);
+
+// Execute the query
 $stmt->execute();
 
 // Fetching results for each query result set
@@ -212,15 +246,33 @@ $salesData = [
   'annual' => [(int)($annualSales + $annualStoreSales)]
 ];
 
-// Most purchased products from store_sales
-$mostPurchasedStoreProducts = [];
-$stmt->nextRowset();
-while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
-    $mostPurchasedStoreProducts[] = $row;
-}
+// Most purchased products
+$stmt = $pdo->prepare("
+    SELECT product_id, product_name, SUM(quantity) AS total_quantity
+    FROM store_sales
+    WHERE (MONTH(sale_date) = :month AND YEAR(sale_date) = :year)
+    GROUP BY product_id
+    ORDER BY total_quantity DESC
+    LIMIT 3;
+");
+$stmt->bindParam(':month', $selectedMonth, PDO::PARAM_INT);
+$stmt->bindParam(':year', $selectedYear, PDO::PARAM_INT);
+$stmt->execute();
+$mostPurchasedProducts = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-//Nag ka crash kaya check ang query lagi
-//mali ang kinukuha mo na data kasi dapat total_amount hindi sya sales_amount
+// Least purchased products
+$stmt = $pdo->prepare("
+    SELECT product_id, product_name, SUM(quantity) AS total_quantity
+    FROM store_sales
+    WHERE (MONTH(sale_date) = :month AND YEAR(sale_date) = :year)
+    GROUP BY product_id
+    ORDER BY total_quantity ASC
+    LIMIT 3;
+");
+$stmt->bindParam(':month', $selectedMonth, PDO::PARAM_INT);
+$stmt->bindParam(':year', $selectedYear, PDO::PARAM_INT);
+$stmt->execute();
+$leastPurchasedProducts = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
 $salesData2 = [
   'weekly' => [],
@@ -266,20 +318,29 @@ $stmt = $pdo->prepare("
     FROM store_sales ss
     JOIN products p ON ss.product_id = p.product_id
     JOIN brands b ON p.brand_id = b.brand_id
-    WHERE ss.sale_date >= CURDATE() - INTERVAL 1 MONTH 
+    WHERE (MONTH(ss.sale_date) = :month AND YEAR(ss.sale_date) = :year)
     GROUP BY b.brand_id 
     ORDER BY total_sales DESC 
     LIMIT 1;
 ");
-
+$stmt->bindParam(':month', $selectedMonth, PDO::PARAM_INT);
+$stmt->bindParam(':year', $selectedYear, PDO::PARAM_INT);
+$stmt->execute();
+$topBrand = $stmt->fetch(PDO::FETCH_ASSOC);
 function formatSales($number) {
   if ($number >= 1000) {
       return number_format($number / 1000, 1) . 'K'; // Format as thousands
   }
   return number_format($number); // Return as is for numbers less than 1000
 }
-$stmt->execute();
-$topBrand = $stmt->fetch(PDO::FETCH_ASSOC);
+
+function formatunsettledAmount($number) {
+  if ($number >= 1000) {
+      return number_format($number / 1000, 1) . 'K'; // Format as thousands
+  }
+  return number_format($number); // Return as is for numbers less than 1000
+}
+
 ?>
 
 <!DOCTYPE html>
@@ -299,14 +360,13 @@ $topBrand = $stmt->fetch(PDO::FETCH_ASSOC);
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
   <!-- Deferred JS loading -->
-  <script defer src="assets/vendor/pure counter/purecounter_vanilla.js"></script>
+  <script defer src="assets/vendor/purecounter/purecounter_vanilla.js"></script>
   <script defer src="assets/vendor/aos/aos.js"></script>
   <script defer src="assets/vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
   <script defer src="assets/vendor/glightbox/js/glightbox.min.js"></script>
   <script defer src="assets/vendor/swiper/swiper-bundle.min.js"></script>
   <script defer src="assets/js/admin.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
 
   <style>
     body {
@@ -372,7 +432,13 @@ $topBrand = $stmt->fetch(PDO::FETCH_ASSOC);
         font-size: 18px;
         margin-bottom: 20px;
     }
-    .leaderboard, .low-stock, .recent-purchases {
+    .most-purchased h5, .leaderboard h5, .least-purchased h5, .low-stock h5{
+        font-family: 'Arial', sans-serif;  
+        font-weight: bold;  
+        font-size: 25px; 
+        margin: 0;
+    }
+    .leaderboard, .low-stock {
         margin: 20px;
         padding: 20px;
         border-radius: 10px;
@@ -402,6 +468,23 @@ $topBrand = $stmt->fetch(PDO::FETCH_ASSOC);
     .btn:hover {
         background-color: #0056b3;
     }
+    .most-purchased, .least-purchased {
+    margin: 20px;
+    padding: 20px;
+    border-radius: 10px;
+    background: #ffffff;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+    overflow-y: auto;
+    max-height: 130px; 
+    }
+    .filter-form {
+    display: flex;
+    gap: 10px; 
+    }
+
+    .filter-form .form-select {
+        width: auto; 
+    }
   </style>
 </head>
 
@@ -411,6 +494,28 @@ $topBrand = $stmt->fetch(PDO::FETCH_ASSOC);
   <main id="main">
     <section id="dashboard">
       <h2 class="mb-4">Dashboard</h2>
+      <div class="col-md-12 d-flex justify-content-end mb-3">
+          <div class="filter-form d-flex">
+              <form method="GET" action="" class="d-flex">
+                  <select name="month" class="form-select me-2" aria-label="Month" onchange="this.form.submit()">
+                      <option value="">Select Month</option>
+                      <?php foreach ($months as $month): ?>
+                          <option value="<?php echo $month['month']; ?>" <?php echo $selectedMonth == $month['month'] ? 'selected' : ''; ?>>
+                              <?php echo date('F', mktime(0, 0, 0, $month['month'], 1)); ?>
+                          </option>
+                      <?php endforeach; ?>
+                  </select>
+                  <select name="year" class="form-select me-2" aria-label="Year" onchange="this.form.submit()">
+                      <option value="">Select Year</option>
+                      <?php foreach ($years as $year): ?>
+                          <option value="<?php echo $year['year']; ?>" <?php echo $selectedYear == $year['year'] ? 'selected' : ''; ?>>
+                              <?php echo $year['year']; ?>
+                          </option>
+                      <?php endforeach; ?>
+                  </select>
+              </form>
+          </div>
+      </div>
       <div class="container">
         <div class="row">
         <div class="col-md-4">
@@ -446,15 +551,25 @@ $topBrand = $stmt->fetch(PDO::FETCH_ASSOC);
                     <p><?php echo (int)$activeAgentsCount; ?></p>
               </div>
         </div>
-            <div class="row">
-                <div class="col-md-4">
-                    <div class="metric">
-                        <h5>Unsettled Amount</h5>
-                        <p class="text-danger">PHP <?php echo number_format($unsettledAmount); ?></p>
-                    </div>
+            <div class="col-md-4">
+                <div class="metric">
+                    <h5>Unsettled Amount</h5>
+                    <p class="<?php echo $unsettledAmount > 0 ? 'text-danger' : 'text-success'; ?>">
+                        PHP <?php echo formatUnsettledAmount($unsettledAmount); ?>
+                    </p>
                 </div>
             </div>
-        </div>
+            <div class="col-md-4">
+                <div class="metric">
+                    <h5>Top Brand</h5>
+                    <?php if ($topBrand): ?>
+                        <p><?php echo htmlspecialchars($topBrand['brand_name']); ?>
+                    <?php else: ?>
+                        <p>No Top Brand</p>
+                    <?php endif; ?>
+                </div>
+            </div>
+      </div>
 
         <div class="row">
         <div class="col-md-8">
@@ -498,13 +613,29 @@ $topBrand = $stmt->fetch(PDO::FETCH_ASSOC);
             <div class="most-purchased">
                 <h5>Most Purchased Products</h5>
                 <ul class="list-group">
-                    <?php if (empty($mostPurchasedStoreProducts)): ?>
+                    <?php if (empty($mostPurchasedProducts)): ?>
                         <li class="list-group-item">No products found.</li>
                     <?php else: ?>
-                        <?php foreach ($mostPurchasedStoreProducts as $product): ?>
+                        <?php foreach ($mostPurchasedProducts as $product): ?>
                             <li class="list-group-item">
-                                <?php echo htmlspecialchars($product['product_name'] ?? 'Product'); ?> - 
-                                <?php echo (int)($product['total_quantity'] ?? 0); ?>
+                                <?php echo htmlspecialchars($product['product_name']); ?> - 
+                                <?php echo (int)($product['total_quantity']); ?>
+                            </li>
+                        <?php endforeach; ?>
+                    <?php endif; ?>
+                </ul>
+            </div>
+
+            <div class="least-purchased">
+                <h5>Least Purchased Products</h5>
+                <ul class="list-group">
+                    <?php if (empty($leastPurchasedProducts)): ?>
+                        <li class="list-group-item">No products found.</li>
+                    <?php else: ?>
+                        <?php foreach ($leastPurchasedProducts as $product): ?>
+                            <li class="list-group-item">
+                                <?php echo htmlspecialchars($product['product_name']); ?> - 
+                                <?php echo (int)($product['total_quantity']); ?>
                             </li>
                         <?php endforeach; ?>
                     <?php endif; ?>
@@ -520,62 +651,6 @@ $topBrand = $stmt->fetch(PDO::FETCH_ASSOC);
   <footer class="footer">
     <p>&copy; 2024 DMshop. All rights reserved.</p>
   </footer>
-
-<!-- <script>
-  // Sales Chart Setup
-  const salesData = <?php echo json_encode($salesData); ?>;
-  const ctx = document.getElementById('salesLineChart').getContext('2d');
-  const salesLineChart = new Chart(ctx, {
-    type: 'line',
-    data: {
-      labels: ['Weekly', 'Monthly', 'Quarterly', 'Annual'], // Default labels
-      datasets: [{
-        label: 'Sales',
-        data: salesData.weekly.concat(salesData.monthly, salesData.quarterly, salesData.annual), // Default data
-        borderColor: '#007bff',
-        backgroundColor: 'rgba(0, 255, 115, 0.29)',
-        fill: true,
-        tension: 0.4
-      }]
-    },
-    options: {
-      responsive: true,
-      scales: {
-        y: {
-          beginAtZero: true
-        }
-      }
-    }
-  });
-
-  // Handle sales filter selection
-  document.getElementById('salesFilter').addEventListener('change', function(event) {
-    const selectedFilter = event.target.value;
-    let filteredData = [];
-    let newLabels = [];
-
-    if (selectedFilter === 'weekly') {
-      newLabels = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
-      filteredData = salesData.weekly;
-    } else if (selectedFilter === 'monthly') {
-      newLabels = Array.from({ length: salesData.monthly.length }, (_, i) => `Week ${i + 1}`);
-      filteredData = salesData.monthly;
-    } else if (selectedFilter === 'quarterly') {
-      newLabels = ['Q1', 'Q2', 'Q3', 'Q4'];
-      filteredData = salesData.quarterly;
-    } else if (selectedFilter === 'annual') {
-      newLabels = Array.from({ length: salesData.annual.length }, (_, i) => `Year ${i + 1}`);
-      filteredData = salesData.annual;
-    } else {
-      newLabels = ['Weekly', 'Monthly', 'Quarterly', 'Annual'];
-      filteredData = salesData.weekly.concat(salesData.monthly, salesData.quarterly, salesData.annual);
-    }
-
-    salesLineChart.data.labels = newLabels;
-    salesLineChart.data.datasets[0].data = filteredData;
-    salesLineChart.update();
-  });
-</script> -->
 
 <script>
   // Sales Chart Setup
@@ -653,8 +728,8 @@ $topBrand = $stmt->fetch(PDO::FETCH_ASSOC);
     salesLineChart.data.datasets[0].data = filteredData;
     salesLineChart.update();
 });
-</script>
 
+</script>
 
 </body>
 

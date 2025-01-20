@@ -32,8 +32,9 @@ $agent_address = $_POST['agent_address'];
 $agent_validID = $_POST['agent_validID'];
 $agent_email = $_POST['agent_email'];
 
-// Handle file upload for ID image (both front and back in one file)
-$id_image_file = $_FILES['agent_id_image'];
+// File uploads for ID pictures
+$id_front_data = file_get_contents($_FILES['agent_id_front']['tmp_name']);
+$id_back_data = file_get_contents($_FILES['agent_id_back']['tmp_name']);
 
 // Check for duplicate contact number
 $stmt = $pdo->prepare("SELECT agent_contact FROM agents WHERE agent_contact = :agent_contact");
@@ -56,18 +57,26 @@ if ($stmt->rowCount() > 0) {
         $plain_password = $password;
 
         // Handle ID image upload
-        $id_image_path = 'uploads/IDs/' . basename($id_image_file['name']);
+        $id_front_image_path = 'uploads/IDs/' . basename($_FILES['agent_id_front']['name']);
+        $id_back_image_path = 'uploads/IDs/' . basename($_FILES['agent_id_back']['name']);
 
-        // Move the uploaded file to the target folder
-        if (!move_uploaded_file($id_image_file['tmp_name'], $id_image_path)) {
-            $_SESSION['error'] = 'Failed to upload the ID image.';
+        // Move the uploaded file to the target folder for front ID
+        if (!move_uploaded_file($_FILES['agent_id_front']['tmp_name'], $id_front_image_path)) {
+            $_SESSION['error'] = 'Failed to upload the front ID image.';
+            header("Location: admin_registerAgent.php");
+            exit();
+        }
+
+        // Move the uploaded file to the target folder for back ID
+        if (!move_uploaded_file($_FILES['agent_id_back']['tmp_name'], $id_back_image_path)) {
+            $_SESSION['error'] = 'Failed to upload the back ID image.';
             header("Location: admin_registerAgent.php");
             exit();
         }
 
         // Insert agent details with a starting credit limit of 2500 pesos
-        $sql = "INSERT INTO agents (agent_fname, agent_mname, agent_lname, agent_sex, agent_age, agent_birthdate, agent_contact, agent_address, agent_validID, agent_email, id_image_url, role, credit_limit, agent_status, agent_creationDate) 
-                VALUES (:agent_fname, :agent_mname, :agent_lname, :agent_sex, :agent_age, :agent_birthdate, :agent_contact, :agent_address, :agent_validID, :agent_email, :id_image_url, 'Sales Agent', 2500, 'Active', NOW())";
+        $sql = "INSERT INTO agents (agent_fname, agent_mname, agent_lname, agent_sex, agent_age, agent_birthdate, agent_contact, agent_address, agent_validID, agent_email, id_front_image, id_back_image, agent_user, role, credit_limit, agent_status, agent_creationDate) 
+        VALUES (:agent_fname, :agent_mname, :agent_lname, :agent_sex, :agent_age, :agent_birthdate, :agent_contact, :agent_address, :agent_validID, :agent_email, :id_front_image, :id_back_image, :agent_user, 'Sales Agent', 2500, 'Active', NOW())";
         $stmt = $pdo->prepare($sql);
 
         // Bind parameters for the agents table
@@ -81,22 +90,24 @@ if ($stmt->rowCount() > 0) {
         $stmt->bindParam(':agent_address', $agent_address);
         $stmt->bindParam(':agent_validID', $agent_validID);
         $stmt->bindParam(':agent_email', $agent_email);
-        $stmt->bindParam(':id_image_url', $id_image_path); // Store the uploaded ID image URL
+        $stmt->bindParam(':id_front_image', $id_front_data, PDO::PARAM_LOB);
+        $stmt->bindParam(':id_back_image', $id_back_data, PDO::PARAM_LOB);
+        $stmt->bindParam(':agent_user', $agent_user); // Bind the agent_user parameter
 
         if ($stmt->execute()) {
-            // Insert login credentials into users table with plain text password
-            $sql_users = "INSERT INTO users (username, password, role) VALUES (:username, :password, 'Sales Agent')";
-            $stmt_users = $pdo->prepare($sql_users);
+        // Insert login credentials into users table with plain text password
+        $sql_users = "INSERT INTO users (username, password, role) VALUES (:username, :password, 'Sales Agent')";
+        $stmt_users = $pdo->prepare($sql_users);
 
-            // Bind parameters for the users table
-            $stmt_users->bindParam(':username', $agent_user);
-            $stmt_users->bindParam(':password', $plain_password); // Use plain password
-            $stmt_users->execute();
+        // Bind parameters for the users table
+        $stmt_users->bindParam(':username', $agent_user);
+        $stmt_users->bindParam(':password', $plain_password); // Use plain password
+        $stmt_users->execute();
 
-            // Redirect to admin_viewAgent.php after success
-            $_SESSION['success'] = 'Agent registered successfully!';
-            header("Location: admin_viewAgent.php");
-            exit();
+        // Redirect to admin_viewAgent.php after success
+        $_SESSION['success'] = 'Agent registered successfully!';
+        header("Location: admin_viewAgent.php");
+        exit();
         }
     } catch (PDOException $e) {
         $_SESSION['error'] = "Database error: " . $e->getMessage();
@@ -163,8 +174,10 @@ ob_end_flush();
                 <label for="otherId">Specify Other ID:</label>
                 <input type="text" id="otherId" name="agent_validID_other" placeholder="Specify other ID">
             </div>
-            <label for="id_image">Upload Front and Back of ID:</label>
-            <input type="file" id="id_image" name="agent_id_image" accept="image/*" required>
+            <label for="id_front">Upload ID Front:</label>
+            <input type="file" id="id_front" name="agent_id_front" required>
+            <label for="id_back">Upload ID Back:</label>
+            <input type="file" id="id_back" name="agent_id_back" required>
             <button type="submit">Register Agent</button>
         </form>
 
@@ -189,6 +202,17 @@ ob_end_flush();
       });
       <?php unset($_SESSION['error']); // Clear the error message ?>
     <?php endif; ?>
+
+    // Function to toggle the "Specify Other ID Type" field
+    function toggleOtherIdField() {
+      var validIDSelect = document.getElementById('validID');
+      var otherIdField = document.getElementById('otherIdField');
+      if (validIDSelect.value === 'Other') {
+        otherIdField.style.display = 'block';
+      } else {
+        otherIdField.style.display = 'none';
+      }
+    }
   </script>
 </body>
 </html>

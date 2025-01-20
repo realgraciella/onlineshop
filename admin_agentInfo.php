@@ -345,12 +345,12 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         <?php endif; ?>
 
         <!-- Search Bar -->
-        <div class="search-bar">
+        <!-- <div class="search-bar">
             <form method="get" action="#">
                 <input type="text" name="search" placeholder="Search by First Name, Last Name, Agent ID, or Username" value="<?= htmlspecialchars($search); ?>">
                 <button type="submit" class="btn btn-primary">Search</button>
             </form>
-        </div>
+        </div> -->
 
         <form action="#" method="post">
             <section>

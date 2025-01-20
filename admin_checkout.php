@@ -6,10 +6,15 @@ include 'database/db_connect.php';
 $checkoutData = [];
 $successMessage = '';
 $errorMessage = '';
-$abortMessage = ''; // Variable to hold abort message
+$abortMessage = ''; 
 
-// Fetch sales agents from the users table
-$agents_query = "SELECT user_id, username FROM users WHERE role = 'Sales Agent'";
+// Fetch sales agents from the agents and users tables
+$agents_query = "
+    SELECT a.agent_id, u.username, a.agent_fname, a.agent_mname, a.agent_lname 
+    FROM agents a 
+    JOIN users u ON a.agent_user = u.username 
+    WHERE u.role = 'Sales Agent'
+";
 $agents_stmt = $pdo->prepare($agents_query);
 $agents_stmt->execute();
 $salesAgents = $agents_stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -232,7 +237,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <select name="sales_agent" id="sales_agent" class="form-select mt-2">
                     <option value="">--</option>
                     <?php foreach ($salesAgents as $agent): ?>
-                        <option value="<?= htmlspecialchars($agent['user_id']) ?>"><?= htmlspecialchars($agent['username']) ?></option>
+                        <option value="<?= htmlspecialchars($agent['agent_id']) ?>">
+                            <?= htmlspecialchars($agent['username']) ?> (<?= htmlspecialchars($agent['agent_fname'] . ' ' . $agent['agent_mname'] . ' ' . $agent['agent_lname']) ?>)
+                        </option>
                     <?php endforeach; ?>
                 </select>
             </div>
@@ -329,34 +336,34 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <script src="assets/vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
     <script>
         $(document).ready(function() {
-        // Initially hide the dropdown and customer input
-        $('#salesAgentDropdown').hide();
-        $('#customerInput').hide();
+    // Initially hide the dropdown and customer input
+    $('#salesAgentDropdown').hide();
+    $('#customerInput').hide();
 
-        $('#salesAgentButton').click(function() {
-            $('#salesAgentDropdown').show(); // Show the sales agent dropdown
-            $('#customerInput').hide(); // Hide the customer input
-            $('#sales_agent').val(''); // Reset the sales agent selection
-        });
-
-        $('#customerButton').click(function() {
-            $('#salesAgentDropdown').hide(); // Hide the sales agent dropdown
-            $('#customerInput').show(); // Show the customer input
-            $('#customer_name').val(''); // Reset the customer name input
-        });
-
-        // Search functionality for sales agent dropdown
-        $('#salesAgentSearch').on('keyup', function() {
-            var value = $(this).val().toLowerCase();
-            $('#sales_agent option').filter(function() {
-                $(this).toggle($(this).text().toLowerCase().indexOf(value) > -1);
-            });
-        });
-
-        <?php if ($abortMessage): ?>
-            $('#abortModal').modal('show');
-        <?php endif; ?>
+    $('#salesAgentButton').click(function() {
+        $('#salesAgentDropdown').show(); // Show the sales agent dropdown
+        $('#customerInput').hide(); // Hide the customer input
+        $('#sales_agent').val(''); // Reset the sales agent selection
     });
+
+    $('#customerButton').click(function() {
+        $('#salesAgentDropdown').hide(); // Hide the sales agent dropdown
+        $('#customerInput').show(); // Show the customer input
+        $('#customer_name').val(''); // Reset the customer name input
+    });
+
+    // Search functionality for sales agent dropdown
+    $('#salesAgentSearch').on('keyup', function() {
+        var value = $(this).val().toLowerCase();
+        $('#sales_agent option').filter(function() {
+            $(this).toggle($(this).text().toLowerCase().indexOf(value) > -1);
+        });
+    });
+
+    <?php if ($abortMessage): ?>
+        $('#abortModal').modal('show');
+    <?php endif; ?>
+});
     </script>
 </body>
 </html>
