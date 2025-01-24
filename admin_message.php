@@ -20,10 +20,14 @@ try {
 
     $stmt = $pdo->prepare($query); // Use the $pdo variable from db_connect.php
     $stmt->bindParam(':admin_id', $_SESSION['user_id'], PDO::PARAM_INT); // Assuming user_id is stored in session
+    // $stmt->bindParam(':admin_id', $num, PDO::PARAM_INT);
     $stmt->execute();
     
     // Fetch all agents
     $agents = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+    echo "Admin ID: " . htmlspecialchars($_SESSION['user_id']) . "<br>";
+
 } catch (PDOException $e) {
     echo "Error: " . $e->getMessage();
     exit();

@@ -32,6 +32,7 @@ if (isset($_POST['login'])) {
         if ($row) {
             // Check password (plain-text version for testing)
             if ($password === $row['password']) {
+                $_SESSION['user_id'] = $row['user_id'];
                 $_SESSION['username'] = $username;
                 $_SESSION['role'] = $row['role'];
 

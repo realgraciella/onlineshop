@@ -13,7 +13,7 @@ if (!isset($_SESSION['username'])) {
 
 // Send message
 if (isset($_POST['send_message'])) {
-    $agent_id = $_POST['agent_id'];
+    $agent_id = $_SESSION['user_id'];
     $admin_id = $_POST['admin_id'];
     $username = $_SESSION['username']; // Use the username from the session
     $message = $_POST['message'];
@@ -30,7 +30,12 @@ if (isset($_POST['send_message'])) {
 
 // Retrieve all messages
 try {
-    $stmt = $pdo->query("SELECT * FROM adag_messages ORDER BY timestamp ASC");
+
+    $agent_id = $_SESSION['user_id'];
+
+    $stmt = $pdo->prepare("SELECT * FROM adag_messages WHERE agent_id = :agent_id ORDER BY timestamp ASC");
+    $stmt->bindParam(':agent_id', $agent_id, PDO::PARAM_INT); // Bind the agent_id parameter
+    $stmt->execute();
     $messages = $stmt->fetchAll(PDO::FETCH_ASSOC);
 } catch (PDOException $e) {
     echo "Error: " . $e->getMessage();
@@ -171,8 +176,8 @@ try {
     </div>
 
     <form method="POST">
-        <input type="hidden" name="agent_id" value="1"> <!-- Example agent ID -->
-        <input type="hidden" name="admin_id" value="1"> <!-- Example admin ID -->
+        <input type="hidden" name="agent_id" value="<?php echo htmlspecialchars($_SESSION['user_id']); ?>"> <!-- Example agent ID -->
+        <input type="hidden" name="admin_id" value="6"> <!-- Example admin ID -->
         <input type="text" name="username" value="<?php echo $_SESSION['username']; ?>" readonly>
         <textarea name="message" placeholder="Type your message here..." required></textarea>
         <button type="submit" name="send_message">Send</button>
