@@ -1,16 +1,12 @@
 <?php
 session_start();
-$connection = new mysqli('localhost', 'root', '', 'dmshop1');
-
-if ($connection->connect_error) {
-    die("Connection failed: " . $connection->connect_error);
-}
+include 'database/db_connect.php'; // Include PDO connection file
 
 // Check if the request method is POST
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // Check if username is set in session
     if (!isset($_SESSION['username'])) {
-        echo json_encode(['success' => false, 'message' => 'User  not logged in.']);
+        echo json_encode(['success' => false, 'message' => 'User not logged in.']);
         exit; // Exit if the user is not logged in
     }
 
@@ -24,62 +20,65 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $quantity = $_POST['quantity'];
     $price_per_variation = $_POST['price_per_variation'];
 
-    // Prepare and bind the statement to insert into the cart
-    $stmt = $connection->prepare("INSERT INTO cart (username, product_id, variation_id, variation_value, quantity, price_per_variation, created_at) VALUES (?, ?, ?, ?, ?, ?, NOW())");
-    $stmt->bind_param("siisid", $username, $product_id, $variation_id, $variation_value, $quantity, $price_per_variation);
-
-    // Execute the statement and check for success
-    if ($stmt->execute()) {
+    // Prepare and execute the insert statement to add to the cart
+    try {
+        $stmt = $pdo->prepare("INSERT INTO cart (username, product_id, variation_id, variation_value, quantity, price_per_variation, created_at) 
+                               VALUES (?, ?, ?, ?, ?, ?, NOW())");
+        $stmt->execute([$username, $product_id, $variation_id, $variation_value, $quantity, $price_per_variation]);
         echo json_encode(['success' => true, 'message' => 'Product added to cart successfully!']);
-    } else {
-        echo json_encode(['success' => false, 'message' => 'Error adding product to cart.']);
+    } catch (PDOException $e) {
+        echo json_encode(['success' => false, 'message' => 'Error adding product to cart: ' . $e->getMessage()]);
     }
-
-    // Close the prepared statement
-    $stmt->close();
 }
 
 // Fetch sale products
-$query = "SELECT products.*, categories.category_name, product_variations.variation_value 
-          FROM products 
-          JOIN categories ON products.category_id = categories.category_id 
-          JOIN product_variations ON products.product_id = product_variations.product_id 
-          WHERE on_sale = 1";
-$result = $connection->query($query);
-
-$saleProducts = [];
-if ($result->num_rows > 0) {
-    while ($row = $result->fetch_assoc()) {
-        // Convert price and old_price to float
-        $row['price'] = floatval($row['price']);
-        $row['old_price'] = floatval($row['old_price']);
-        $saleProducts[] = $row;
+try {
+    $stmt = $pdo->query("SELECT products.*, categories.category_name, product_variations.variation_value 
+                         FROM products 
+                         JOIN categories ON products.category_id = categories.category_id 
+                         JOIN product_variations ON products.product_id = product_variations.product_id 
+                         WHERE on_sale = 1");
+    $saleProducts = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    
+    // Convert prices to float
+    foreach ($saleProducts as &$product) {
+        $product['price'] = floatval($product['price']);
+        $product['old_price'] = floatval($product['old_price']);
     }
+} catch (PDOException $e) {
+    $saleProducts = [];
+    // Handle error here if needed
 }
 
 // Fetch all products
-$productsQuery = "SELECT products.*, categories.category_name, product_variations.price_per_variation, product_variations.variation_value
-                  FROM products 
-                  JOIN categories ON products.category_id = categories.category_id 
-                  JOIN product_variations ON products.product_id = product_variations.product_id";
-$productsResult = $connection->query($productsQuery);
-$products = [];
-if ($productsResult->num_rows > 0) {
-    while ($row = $productsResult->fetch_assoc()) {
-        // Convert price_per_variation to float
-        $row['price_per_variation'] = floatval($row['price_per_variation']);
-        $products[] = $row;
+try {
+    $stmt = $pdo->query("SELECT products.*, categories.category_name, product_variations.price_per_variation, product_variations.variation_value
+                         FROM products 
+                         JOIN categories ON products.category_id = categories.category_id 
+                         JOIN product_variations ON products.product_id = product_variations.product_id");
+    $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+    // Convert price_per_variation to float
+    foreach ($products as &$product) {
+        $product['price_per_variation'] = floatval($product['price_per_variation']);
     }
+} catch (PDOException $e) {
+    $products = [];
+    // Handle error here if needed
 }
 
 // Fetch brands
-$brandsQuery = "SELECT * FROM brands";
-$brandsResult = $connection->query($brandsQuery);
-$brands = $brandsResult->fetch_all(MYSQLI_ASSOC);
+try {
+    $stmt = $pdo->query("SELECT * FROM brands");
+    $brands = $stmt->fetchAll(PDO::FETCH_ASSOC);
+} catch (PDOException $e) {
+    $brands = [];
+    // Handle error here if needed
+}
 
-// Close the database connection
-$connection->close();
+// Close the database connection (PDO does not require manual close, it's closed automatically at the end of the script)
 ?>
+
 
 <!DOCTYPE html>
 <html lang="en">

@@ -1,51 +1,43 @@
 <?php
 session_start();  // Start the session
 
-// Connect to the database
-$connection = new mysqli('localhost', 'root', '', 'dmshop1');
-if ($connection->connect_error) {
-    die("Connection failed: " . $connection->connect_error);
-}
+// Include the PDO connection
+include 'database/db_connect.php';
 
 // Assuming you have the username stored in the session when the agent logs in
 $username = $_SESSION['username']; // Make sure this is set when the agent logs in
 
-// Fetch the agent's credit limit
-$creditLimitQuery = "SELECT credit_limit FROM agents WHERE agent_user = ?";
-$stmt = $connection->prepare($creditLimitQuery);
-$stmt->bind_param("s", $username);
-$stmt->execute();
-$stmt->bind_result($creditLimit);
-$stmt->fetch();
-$stmt->close();
+try {
+    // Fetch the agent's credit limit
+    $creditLimitQuery = "SELECT credit_limit FROM agents WHERE agent_user = :username";
+    $stmt = $pdo->prepare($creditLimitQuery);
+    $stmt->bindParam(':username', $username, PDO::PARAM_STR);
+    $stmt->execute();
+    $creditLimit = $stmt->fetchColumn();
 
-// Initialize the cart items
-$cartItems = [];
+    // Initialize the cart items
+    $cartItems = [];
 
-// Fetch cart items based on the username
-$cartQuery = "SELECT * FROM cart WHERE username = ?";
-$stmt = $connection->prepare($cartQuery);
-$stmt->bind_param("s", $username);
-$stmt->execute();
-$result = $stmt->get_result();
+    // Fetch cart items based on the username
+    $cartQuery = "SELECT * FROM cart WHERE username = :username";
+    $stmt = $pdo->prepare($cartQuery);
+    $stmt->bindParam(':username', $username, PDO::PARAM_STR);
+    $stmt->execute();
+    $cartItems = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-while ($row = $result->fetch_assoc()) {
-    $cartItems[] = $row;  // Add each cart item to the cartItems array
-}
-
-$stmt->close();
-$connection->close();
-
-// Calculate the total price of the cart
-$total = 0;
-if ($cartItems) {
+    // Calculate the total price of the cart
+    $total = 0;
     foreach ($cartItems as $item) {
         $total += floatval($item['price_per_variation']) * intval($item['quantity']);
     }
-}
 
-$creditLimitExceeded = $total > floatval($creditLimit); // Check if the total exceeds the credit limit
+    $creditLimitExceeded = $total > floatval($creditLimit); // Check if the total exceeds the credit limit
+} catch (PDOException $e) {
+    echo "Error: " . $e->getMessage();
+    exit;
+}
 ?>
+
 
 <!DOCTYPE html>
 <html lang="en">

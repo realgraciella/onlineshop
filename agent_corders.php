@@ -1,46 +1,53 @@
 <?php
 include('database/db_connect.php');
+
 // Start session and validate username
 session_start();
 if (!isset($_SESSION['username'])) {
-    die("User  not logged in."); // Ensure only logged-in users can access
+    die("User not logged in."); // Ensure only logged-in users can access
 }
 
 // Retrieve the logged-in username from the session
 $client_username = $_SESSION['username'];
 var_dump($client_username); // Debugging: Check if the username is set
 
-// Database connection
-$conn = new mysqli("localhost", "root", "", "dmshop1");
-if ($conn->connect_error) {
-    die("Database connection failed: " . $conn->connect_error);
-}
+try {
+    // Prepare SQL query to fetch orders for the logged-in customer
+    $sql = "
+        SELECT 
+            order_id,
+            product_id,
+            variation_value,
+            price_per_variation,
+            quantity,
+            order_status,
+            order_date
+        FROM orders1
+        WHERE client_id = ?
+        ORDER BY order_date DESC";
 
-// Query to fetch orders for the logged-in customer
-$sql = "
-    SELECT 
-        order_id,
-        product_id,
-        variation_value,
-        price_per_variation,
-        quantity,
-        order_status,
-        order_date
-    FROM orders1
-    WHERE client_id = ? 
-    ORDER BY order_date DESC";
+    $stmt = $pdo->prepare($sql);
+    $stmt->execute([$client_username]);
 
-$stmt = $conn->prepare($sql);
-if (!$stmt) {
-    die("Query preparation failed: " . $conn->error);
-}
-$stmt->bind_param('s', $client_username);
-$stmt->execute();
-$result = $stmt->get_result();
+    // Fetch all results
+    $orders = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-// Check if there were any errors while executing the query
-if ($result === false) {
-    die("Query execution failed: " . $conn->error);
+    // Check if there are any orders
+    if (!$orders) {
+        echo "No orders found.";
+    } else {
+        foreach ($orders as $order) {
+            echo "Order ID: " . htmlspecialchars($order['order_id']) . "<br>";
+            echo "Product ID: " . htmlspecialchars($order['product_id']) . "<br>";
+            echo "Variation: " . htmlspecialchars($order['variation_value']) . "<br>";
+            echo "Price: $" . htmlspecialchars($order['price_per_variation']) . "<br>";
+            echo "Quantity: " . htmlspecialchars($order['quantity']) . "<br>";
+            echo "Status: " . htmlspecialchars($order['order_status']) . "<br>";
+            echo "Date: " . htmlspecialchars($order['order_date']) . "<br><br>";
+        }
+    }
+} catch (PDOException $e) {
+    die("Query execution failed: " . $e->getMessage());
 }
 ?>
 
@@ -157,6 +164,6 @@ if ($result === false) {
 
 <?php
 // Close the statement and connection
-$stmt->close();
-$conn->close();
-?> 
+$stmt = null;
+$pdo = null;
+?>

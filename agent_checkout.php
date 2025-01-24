@@ -1,5 +1,6 @@
 <?php
 session_start();
+include 'database/db_connect.php';
 
 // Ensure the agent is logged in and their username is available in the session
 if (!isset($_SESSION['username'])) {
@@ -13,30 +14,13 @@ $username = $_SESSION['username'];  // Get the logged-in agent's username
 if (isset($_SESSION['cart']) && count($_SESSION['cart']) > 0) {
     // Fetch the products from the database based on the product IDs in the cart
     $cartProductIds = $_SESSION['cart'];
-    $productIds = implode(',', $cartProductIds);  // Convert the array to a comma-separated string
-
-    // Connect to the database
-    $connection = new mysqli('localhost', 'root', '', 'dmshop');
-    if ($connection->connect_error) {
-        die("Connection failed: " . $connection->connect_error);
-    }
+    $placeholders = rtrim(str_repeat('?,', count($cartProductIds)), ',');
 
     // Fetch product details from the database
-    $query = "SELECT * FROM products WHERE product_id IN ($productIds)";
-    $result = $connection->query($query);
-
-    $cartItems = [];  // Initialize the $cartItems array
-
-    if ($result->num_rows > 0) {
-        // Loop through the result and add each product to the $cartItems array
-        while ($product = $result->fetch_assoc()) {
-            $cartItems[] = $product;  // Add product to cartItems array
-        }
-    } else {
-        $cartItems = null;  // Set to null if no products were found
-    }
-
-    $connection->close();
+    $query = "SELECT * FROM products WHERE product_id IN ($placeholders)";
+    $stmt = $pdo->prepare($query);
+    $stmt->execute($cartProductIds);
+    $cartItems = $stmt->fetchAll(PDO::FETCH_ASSOC);
 } else {
     $cartItems = null;  // Set to null if no products in the session cart
 }
@@ -59,50 +43,33 @@ if ($cartItems && $_SERVER['REQUEST_METHOD'] == 'POST') {
     $orderStatus = 'Pending';  // Initial order status
     $paymentStatus = 'Unpaid';  // Initial payment status
 
-    // Insert the order into the 'order' table
-    $connection = new mysqli('localhost', 'root', '', 'dmshop');
-    if ($connection->connect_error) {
-        die("Connection failed: " . $connection->connect_error);
-    }
-
     // Start a transaction
-    $connection->begin_transaction();
+    $pdo->beginTransaction();
 
     try {
-        // Insert order details into the 'order' table
-        $orderQuery = "INSERT INTO `orders` (username, name, total_amount, order_date, order_status, payment_method, payment_status) 
+        // Insert order details into the 'orders' table
+        $orderQuery = "INSERT INTO orders (username, name, total_amount, order_date, order_status, payment_method, payment_status) 
         VALUES (?, ?, ?, NOW(), ?, ?, ?)";
-        $stmt = $connection->prepare($orderQuery);
-        $stmt->bind_param('ssdsds', $username, $name, $totalAmount, $orderStatus, $paymentMethod, $paymentStatus);
+        $stmt = $pdo->prepare($orderQuery);
+        $stmt->execute([$username, $name, $totalAmount, $orderStatus, $paymentMethod, $paymentStatus]);
+        
+        $orderId = $pdo->lastInsertId();  // Get the last inserted order ID
 
+        // Commit the transaction
+        $pdo->commit();
 
-        // Execute and check if successful
-        if ($stmt->execute()) {
-            $orderId = $stmt->insert_id;  // Get the last inserted order ID
+        // Clear the cart session
+        unset($_SESSION['cart']);
 
-            // Commit the transaction
-            $connection->commit();
-
-            // Clear the cart session
-            unset($_SESSION['cart']);
-
-            // Redirect to order confirmation page
-            header('Location: order_confirmation.php?order_id=' . $orderId);
-            exit; // Ensure script stops executing here after redirect
-        } else {
-            // If the order insert fails, rollback transaction
-            $connection->rollback();
-            echo "Error: " . $stmt->error;
-        }
+        // Redirect to order confirmation page
+        header('Location: order_confirmation.php?order_id=' . $orderId);
+        exit; // Ensure script stops executing here after redirect
     } catch (Exception $e) {
         // Rollback the transaction if any error occurs
-        $connection->rollback();
+        $pdo->rollBack();
         echo "Error: " . $e->getMessage();
     }
-
-    $connection->close();
 }
-
 ?>
 
 <!DOCTYPE html>
