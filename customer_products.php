@@ -1,52 +1,48 @@
 <?php
-// Database connection
-$connection = new mysqli('localhost', 'root', '', 'dmshop1');
-
-if ($connection->connect_error) {
-    die("Connection failed: " . $connection->connect_error);
-}
+include 'database/db_connect.php';
 
 // Fetch sale products
-$query = "SELECT products.*, categories.category_name, product_variations.variation_value 
-          FROM products 
-          JOIN categories ON products.category_id = categories.category_id 
-          JOIN product_variations ON products.product_id = product_variations.product_id 
-          WHERE on_sale = 1";
-$result = $connection->query($query);
-$result = $connection->query($query);
-
+$saleQuery = "SELECT products.*, categories.category_name, product_variations.variation_value 
+              FROM products 
+              JOIN categories ON products.category_id = categories.category_id 
+              JOIN product_variations ON products.product_id = product_variations.product_id 
+              WHERE on_sale = 1";
+$saleStmt = $pdo->prepare($saleQuery);
+$saleStmt->execute();
 $saleProducts = [];
-if ($result->num_rows > 0) {
-    while ($row = $result->fetch_assoc()) {
-        // Convert price and old_price to float
-        $row['price'] = floatval($row['price']);
-        $row['old_price'] = floatval($row['old_price']);
-        $saleProducts[] = $row;
-    }
+while ($row = $saleStmt->fetch(PDO::FETCH_ASSOC)) {
+    // Convert price and old_price to float
+    $row['price'] = floatval($row['price']);
+    $row['old_price'] = floatval($row['old_price']);
+    $saleProducts[] = $row;
 }
 
 // Fetch all products
 $productsQuery = "SELECT products.*, categories.category_name, product_variations.price_per_variation, product_variations.variation_value 
-    FROM products 
-    JOIN categories ON products.category_id = categories.category_id 
-    JOIN product_variations ON products.product_id = product_variations.product_id";
-$productsResult = $connection->query($productsQuery);
+                  FROM products 
+                  JOIN categories ON products.category_id = categories.category_id 
+                  JOIN product_variations ON products.product_id = product_variations.product_id";
+$productsStmt = $pdo->prepare($productsQuery);
+$productsStmt->execute();
 $products = [];
-if ($productsResult->num_rows > 0) {
-    while ($row = $productsResult->fetch_assoc()) {
-        // Convert price_per_variation to float
-        $row['price_per_variation'] = floatval($row['price_per_variation']);
-        $products[] = $row;
-    }
+while ($row = $productsStmt->fetch(PDO::FETCH_ASSOC)) {
+    // Convert price_per_variation to float
+    $row['price_per_variation'] = floatval($row['price_per_variation']);
+    $products[] = $row;
 }
 
 // Fetch brands
 $brandsQuery = "SELECT * FROM brands";
-$brandsResult = $connection->query($brandsQuery);
-$brands = $brandsResult->fetch_all(MYSQLI_ASSOC);
+$brandsStmt = $pdo->prepare($brandsQuery);
+$brandsStmt->execute();
+$brands = $brandsStmt->fetchAll(PDO::FETCH_ASSOC);
 
-$connection->close();
+// Close connection
+$pdo = null;
 ?>
+
+
+
 <!DOCTYPE html>
 <html lang="en">
 <head>

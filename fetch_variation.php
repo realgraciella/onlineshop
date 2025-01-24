@@ -1,24 +1,24 @@
 <?php
 session_start();
-$connection = new mysqli('localhost', 'root', '', 'dmshop1');
-
-if ($connection->connect_error) {
-    die("Connection failed: " . $connection->connect_error);
-}
+include 'database/db_connect.php'; // Include the PDO connection
 
 if (isset($_POST['product_id'])) {
     $productId = intval($_POST['product_id']);
-    $query = "SELECT * FROM product_variations WHERE product_id = $productId";
-    $result = $connection->query($query);
+    
+    // Prepare the query
+    $query = "SELECT * FROM product_variations WHERE product_id = :product_id";
+    $stmt = $pdo->prepare($query);
 
-    $variations = [];
-    if ($result->num_rows > 0) {
-        while ($row = $result->fetch_assoc()) {
-            $variations[] = $row;
-        }
-    }
+    // Bind the parameter to avoid SQL injection
+    $stmt->bindParam(':product_id', $productId, PDO::PARAM_INT);
+    
+    // Execute the statement
+    $stmt->execute();
+    
+    // Fetch all results
+    $variations = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+    // Output as JSON
     echo json_encode($variations);
 }
-
-$connection->close();
 ?>

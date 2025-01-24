@@ -1,40 +1,28 @@
 <?php
 session_start();  // Start the session
 
-// Connect to the database
-$connection = new mysqli('localhost', 'root', '', 'dmshop1');
-if ($connection->connect_error) {
-    die("Connection failed: " . $connection->connect_error);
-}
+// Include the database connection
+include 'database/db_connect.php'; 
 
 // Assuming you have the username stored in the session when the agent logs in
 $username = $_SESSION['username']; // Make sure this is set when the agent logs in
 
 // Fetch the agent's credit limit
-$creditLimitQuery = "SELECT credit_limit FROM agents WHERE agent_user = ?";
-$stmt = $connection->prepare($creditLimitQuery);
-$stmt->bind_param("s", $username);
+$creditLimitQuery = "SELECT credit_limit FROM agents WHERE agent_user = :username";
+$stmt = $pdo->prepare($creditLimitQuery);
+$stmt->bindParam(':username', $username, PDO::PARAM_STR);
 $stmt->execute();
-$stmt->bind_result($creditLimit);
-$stmt->fetch();
-$stmt->close();
+$creditLimit = $stmt->fetchColumn(); // Fetch the single column value
 
 // Initialize the cart items
 $cartItems = [];
 
 // Fetch cart items based on the username
-$cartQuery = "SELECT * FROM cart WHERE username = ?";
-$stmt = $connection->prepare($cartQuery);
-$stmt->bind_param("s", $username);
+$cartQuery = "SELECT * FROM cart WHERE username = :username";
+$stmt = $pdo->prepare($cartQuery);
+$stmt->bindParam(':username', $username, PDO::PARAM_STR);
 $stmt->execute();
-$result = $stmt->get_result();
-
-while ($row = $result->fetch_assoc()) {
-    $cartItems[] = $row;  // Add each cart item to the cartItems array
-}
-
-$stmt->close();
-$connection->close();
+$cartItems = $stmt->fetchAll(PDO::FETCH_ASSOC);  // Fetch all results as an associative array
 
 // Calculate the total price of the cart
 $total = 0;
@@ -46,6 +34,8 @@ if ($cartItems) {
 
 $creditLimitExceeded = $total > floatval($creditLimit); // Check if the total exceeds the credit limit
 ?>
+
+
 
 <!DOCTYPE html>
 <html lang="en">

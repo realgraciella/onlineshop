@@ -1,24 +1,13 @@
 <?php
 session_start(); // Start the session
 
-$host = 'localhost'; // Your database host
-$db = 'dmshop1'; // Your database name
-$user = 'root'; // Your database username
-$pass = ''; // Your database password
+include 'database/db_connect.php'; // Include the PDO connection
 
 // Check if the user is logged in (ensure the username is stored in the session)
 if (!isset($_SESSION['username'])) {
     // Redirect to login page if the user is not logged in
     header("Location: login.php");
     exit();
-}
-
-// Create connection
-$conn = new mysqli($host, $user, $pass, $db);
-
-// Check connection
-if ($conn->connect_error) {
-    die("Connection failed: " . $conn->connect_error);
 }
 
 // Send message
@@ -28,23 +17,27 @@ if (isset($_POST['send_message'])) {
     $username = $_SESSION['username']; // Use the username from the session
     $message = $_POST['message'];
 
-    $stmt = $conn->prepare("INSERT INTO agco_message (agent_id, client_id, username, message) VALUES (?, ?, ?, ?)");
-    $stmt->bind_param("iiss", $agent_id, $admin_id, $username, $message);
-    $stmt->execute();
-    $stmt->close();
+    // Use PDO to insert the message
+    try {
+        $stmt = $pdo->prepare("INSERT INTO agco_message (agent_id, client_id, username, message) VALUES (?, ?, ?, ?)");
+        $stmt->execute([$agent_id, $admin_id, $username, $message]);
+    } catch (PDOException $e) {
+        echo "Error: " . $e->getMessage();
+    }
 }
 
 // Retrieve all messages
-$sql = "SELECT * FROM agco_message ORDER BY timestamp ASC";
-$result = $conn->query($sql);
+try {
+    $sql = "SELECT * FROM agco_message ORDER BY timestamp ASC";
+    $stmt = $pdo->query($sql);
 
-$messages = [];
-while ($row = $result->fetch_assoc()) {
-    $messages[] = $row;
+    $messages = $stmt->fetchAll(PDO::FETCH_ASSOC); // Fetch all messages
+} catch (PDOException $e) {
+    echo "Error: " . $e->getMessage();
 }
 
-$conn->close();
 ?>
+
 
 <!DOCTYPE html>
 <html lang="en">
