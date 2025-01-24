@@ -21,11 +21,14 @@ $query = "
        p.price,
        p.old_price,
        p.stock_level,
-       p.on_sale
+       p.on_sale,
+       (CASE WHEN pv.stock_per_variation > 0 THEN 'Available' ELSE 'Not Available' END) AS availability
    FROM products p
    LEFT JOIN product_variations pv ON p.product_id = pv.product_id
    WHERE p.product_name LIKE :search_term OR p.product_desc LIKE :search_term
+   ORDER BY p.product_id
 ";
+
 $stmt = $pdo->prepare($query);
 $stmt->execute(['search_term' => '%' . $search_term . '%']);
 $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -91,17 +94,30 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 
         // Update the price_per_variation and set old_price_variation
         $update_query = "
-            UPDATE product_variations 
-            SET price_per_variation = :new_price_per_variation, 
-                old_price_variation = :current_price_per_variation, 
-                updated_at = NOW() 
-            WHERE variation_id = :variation_id
+        UPDATE product_variations 
+        SET price_per_variation = :new_price_per_variation, 
+            old_price_variation = :current_price_per_variation, 
+            updated_at = NOW() 
+        WHERE variation_id = :variation_id
         ";
         $stmt = $pdo->prepare($update_query);
         $stmt->execute([
-            'new_price_per_variation' => $new_price_per_variation,
-            'current_price_per_variation' => $current_price_per_variation,
-            'variation_id' => $variation_id
+        'new_price_per_variation' => $new_price_per_variation,
+        'current_price_per_variation' => $current_price_per_variation,
+        'variation_id' => $variation_id
+        ]);
+
+        // Update the old_price in the products table
+        $update_products_query = "
+        UPDATE products
+        SET old_price = :current_price,
+            updated_at = NOW()
+        WHERE product_id = (SELECT product_id FROM product_variations WHERE variation_id = :variation_id)
+        ";
+        $stmt = $pdo->prepare($update_products_query);
+        $stmt->execute([
+        'current_price' => $current_price,
+        'variation_id' => $variation_id
         ]);
 
         // Update the product price based on the new price range
@@ -384,6 +400,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                <th>Old Price</th>
                <th>Stock Level</th>
                <th>On Sale</th>
+               <th>Availability</th>
+               <!-- <th>Last Update</th> -->
                <th>Actions</th>
            </tr>
        </thead>
@@ -420,10 +438,11 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 </td>
                <td><?= htmlspecialchars($product['stock_level']) ?></td>
                <td><?= $product['on_sale'] ? 'Yes' : 'No' ?></td>
+               <td><?= htmlspecialchars($product['availability']) ?></td>
                <td>
                    <button class="btn btn-warning" onclick="showEditForm(<?= $product['product_id'] ?>, '<?= htmlspecialchars($product['product_name']) ?>', '<?= htmlspecialchars($product['product_desc']) ?>', '<?= htmlspecialchars($product['variation_value']) ?>')"><i class="fas fa-edit"></i> Edit</button>
                    <button class="btn btn-info" onclick="showPriceForm(<?= $product['variation_id'] ?>, <?= $product['price_per_variation'] ?>, <?= $product['on_sale'] ?>)"><i class="fas fa-tag"></i> Modify Price</button>
-                   <button class="btn btn-success" onclick="showStockForm(<?= $product['variation_id'] ?>, <?= $product['stock_per_variation'] ?>)"><i class="fas fa-box"></i> Re-stock</button>
+                   <button class="btn btn-success" onclick="showAvailabilityForm(<?= $product['variation_id'] ?>, '<?= htmlspecialchars($product['availability']) ?>')"><i class="fas fa-box"></i> Availability</button>
                    <button class="btn btn-danger" onclick="showDeleteConfirmation(<?= $product['product_id'] ?>, <?= $product['variation_id'] ?>)"><i class="fas fa-trash"></i> Delete</button>
                </td>
            </tr>
@@ -487,6 +506,30 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
        <div class="modal-footer">
            <button type="submit" name="update_price" class="btn btn-success">Save Changes</button>
            <button type="button" class="btn btn-danger" onclick="closePriceForm()">Cancel</button>
+       </div>
+   </form>
+</div>
+
+<!-- Availability Modal -->
+<div id="availabilityModal" class="modal">
+   <div class="modal-header">
+       <h3>Change Product Availability</h3>
+       <button type="button" class="btn btn-danger" onclick="closeAvailabilityForm()">&times;</button>
+   </div>
+   <form method="POST">
+       <div class="modal-body">
+           <input type="hidden" name="variation_id" id="availability_variation_id">
+           <div class="form-group">
+               <label for="availability_status">Set Availability:</label>
+               <select class="form-control" name="availability_status" id="availability_status" required>
+                   <option value="1">Available</option>
+                   <option value="0">Not Available</option>
+               </select>
+           </div>
+       </div>
+ <div class="modal-footer">
+           <button type="submit" name="update_availability" class="btn btn-success">Save Changes</button>
+           <button type="button" class="btn btn-danger" onclick="closeAvailabilityForm()">Cancel</button>
        </div>
    </form>
 </div>
@@ -636,6 +679,18 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
            }
        });
    }
+
+   function showAvailabilityForm(variationId, currentAvailability) {
+        document.getElementById('availability_variation_id').value = variationId;
+        document.getElementById('availability_status').value = currentAvailability === 'Available' ? 1 : 0;
+        document.getElementById('availabilityModal').style.display = 'block';
+        document.getElementById('modalOverlay').style.display = 'block';
+    }
+
+    function closeAvailabilityForm() {
+        document.getElementById('availabilityModal').style.display = 'none';
+        document.getElementById('modalOverlay').style.display = 'none';
+    }
 
    function showMessage(title, content) {
        document.getElementById('messageTitle').innerText = title;

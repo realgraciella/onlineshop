@@ -103,7 +103,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
                     $sales_insert_stmt = $pdo->prepare($sales_insert_query);
                     $created_at = date('Y-m-d H:i:s');
-                    $username_display = $username ?? 'Customer'; // Use 'Customer' if no agent is selected
+                    $username_display = $username ?? 'Customer'; 
                     if (!$sales_insert_stmt->execute([$agent_id, $product['product_id'], $username_display, $product['product_name'], $variation['variation_value'], $product_price, $quantity, $total_amount, $sale_date, $created_at])) {
                         $errorInfo = $sales_insert_stmt->errorInfo();
                         $errorMessage = "Error inserting sale into sales table: " . $errorInfo[2];
@@ -227,8 +227,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <div class="mb-3">
                 <label for="customer_type" class="form-label">Select Customer Type</label>
                 <div>
-                    <button type="button" id="salesAgentButton" class="btn btn-secondary">Sales Agent</button>
-                    <button type="button" id="customerButton" class="btn btn-secondary">One-Time Customer</button>
+                    <button type="button" id="salesAgentButton" class="btn btn-primary">Sales Agent</button>
+                    <button type="button" id="customerButton" class="btn btn-primary">One-Time Customer</button>
                 </div>
             </div>
             <div class="mb-3" id="salesAgentDropdown" style="display: none;">

@@ -173,7 +173,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             position: fixed;
             right: 20px;
             top: 270px;
-            width: 25%;
+            width: 30%;
             padding: 20px;
             background-color: white;
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
