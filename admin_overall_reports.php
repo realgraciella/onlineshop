@@ -1,42 +1,32 @@
 <?php
-$servername = "localhost";
-$username = "root"; 
-$password = ""; 
-$dbname = "dmshop1"; 
-
-// Create connection
-$conn = new mysqli($servername, $username, $password, $dbname);
-
-// Check connection
-if ($conn->connect_error) {
-    die("Connection failed: " . $conn->connect_error);
-}
+include 'database/db_connect.php';
 
 // Function to fetch sales data
-function fetchSalesData($conn, $period) {
-    $sql = "SELECT SUM(sale_amount) as total_sales, COUNT(DISTINCT product_id) as total_products, SUM(quantity) as total_quantity 
-            FROM sales 
-            WHERE sale_date >= DATE_SUB(CURDATE(), INTERVAL $period)";
-    return $conn->query($sql)->fetch_assoc();
+function fetchSalesData($pdo, $period) {
+    $stmt = $pdo->prepare("SELECT SUM(sale_amount) as total_sales, COUNT(DISTINCT product_id) as total_products, SUM(quantity) as total_quantity 
+                           FROM sales 
+                           WHERE sale_date >= DATE_SUB(CURDATE(), INTERVAL ?)");
+    $stmt->execute([$period]);
+    return $stmt->fetch(PDO::FETCH_ASSOC);
 }
 
 // Fetch weekly, monthly, quarterly, and annual reports
-$weeklyReport = fetchSalesData($conn, '7 DAY');
-$monthlyReport = fetchSalesData($conn, '1 MONTH');
-$quarterlyReport = fetchSalesData($conn, '3 MONTH');
-$annualReport = fetchSalesData($conn, '1 YEAR');
+$weeklyReport = fetchSalesData($pdo, '7 DAY');
+$monthlyReport = fetchSalesData($pdo, '1 MONTH');
+$quarterlyReport = fetchSalesData($pdo, '3 MONTH');
+$annualReport = fetchSalesData($pdo, '1 YEAR');
 
 // Fetch stock levels
-$stockLevelQuery = "SELECT product_name, stock_level FROM products";
-$stockLevels = $conn->query($stockLevelQuery);
+$stockLevelsStmt = $pdo->query("SELECT product_name, stock_level FROM products");
+$stockLevels = $stockLevelsStmt->fetchAll(PDO::FETCH_ASSOC);
 
 // Fetch most purchased products
-$mostPurchasedQuery = "SELECT product_id, SUM(quantity) as total_quantity 
-                        FROM sales 
-                        GROUP BY product_id 
-                        ORDER BY total_quantity DESC 
-                        LIMIT 5";
-$mostPurchased = $conn->query($mostPurchasedQuery);
+$mostPurchasedStmt = $pdo->query("SELECT product_id, SUM(quantity) as total_quantity 
+                                  FROM sales 
+                                  GROUP BY product_id 
+                                  ORDER BY total_quantity DESC 
+                                  LIMIT 5");
+$mostPurchased = $mostPurchasedStmt->fetchAll(PDO::FETCH_ASSOC);
 ?>
 
 <!DOCTYPE html>
@@ -190,12 +180,12 @@ $mostPurchased = $conn->query($mostPurchasedQuery);
             <th>Product Name</th>
             <th>Stock Level</th>
         </tr>
-        <?php while ($row = $stockLevels->fetch_assoc()): ?>
+        <?php foreach ($stockLevels as $row): ?>
         <tr>
             <td><?php echo $row['product_name']; ?></td>
             <td><?php echo $row['stock_level']; ?></td>
         </tr>
-        <?php endwhile; ?>
+        <?php endforeach; ?>
     </table>
 
     <h2>Most Purchased Products</h2>
@@ -204,12 +194,12 @@ $mostPurchased = $conn->query($mostPurchasedQuery);
             <th>Product ID</th>
             <th>Total Quantity Sold</th>
         </tr>
-        <?php while ($row = $mostPurchased->fetch_assoc()): ?>
+        <?php foreach ($mostPurchased as $row): ?>
         <tr>
             <td><?php echo $row['product_id']; ?></td>
             <td><?php echo $row['total_quantity']; ?></td>
         </tr>
-        <?php endwhile; ?>
+        <?php endforeach; ?>
     </table>
 
     <?php $conn->close(); ?>
@@ -217,83 +207,83 @@ $mostPurchased = $conn->query($mostPurchasedQuery);
     <button id="downloadBtn">Download Report</button>>
 
     <script>
-    document.getElementById('downloadBtn').addEventListener('click', function() {
-        const { jsPDF } = window.jspdf;
-        const doc = new jsPDF();
+document.getElementById('downloadBtn').addEventListener('click', function() {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
 
-        // Add the logo
-        const logo = new Image();
-        logo.src = 'assets/img/logo/4.2.png'; // Path to your logo
-        logo.onload = function() {
-            const logoWidth = 40; // Desired width
-            const aspectRatio = logo.height / logo.width;
-            const logoHeight = logoWidth * aspectRatio; // Maintain aspect ratio
+    // Add the logo
+    const logo = new Image();
+    logo.src = 'assets/img/logo/4.2.png'; // Path to your logo
+    logo.onload = function() {
+        const logoWidth = 40; // Desired width
+        const aspectRatio = logo.height / logo.width;
+        const logoHeight = logoWidth * aspectRatio; // Maintain aspect ratio
 
-            doc.addImage(logo, 'PNG', 150, 10, logoWidth, logoHeight); // Adjust position and maintain aspect ratio
+        doc.addImage(logo, 'PNG', 150, 10, logoWidth, logoHeight); // Adjust position and maintain aspect ratio
 
-            // Title
-            doc.setFontSize(20);
-            doc.text("Sales Reports", 20, 20);
+        // Title
+        doc.setFontSize(20);
+        doc.text("Sales Reports", 20, 20);
 
-            // Add current date
-            const currentDate = new Date().toLocaleDateString();
+        // Add current date
+        const currentDate = new Date().toLocaleDateString();
+        doc.setFontSize(12);
+        doc.text(`Date: ${currentDate}`, 150, 50); // Position the date at the right corner
+
+        // Weekly Report
+        doc.setFontSize(16);
+        doc.text("Weekly Report", 20, 70);
+        doc.setFontSize(12);
+        doc.text(`Total Sales: ${<?php echo json_encode($weeklyReport['total_sales']); ?>}`, 20, 80);
+        doc.text(`Total Products Sold: ${<?php echo json_encode($weeklyReport['total_products']); ?>}`, 20, 90);
+        doc.text(`Total Quantity Sold: ${<?php echo json_encode($weeklyReport['total_quantity']); ?>}`, 20, 100);
+
+        // Monthly Report
+        doc.setFontSize(16);
+        doc.text("Monthly Report", 20, 110);
+        doc.setFontSize(12);
+        doc.text(`Total Sales: ${<?php echo json_encode($monthlyReport['total_sales']); ?>}`, 20, 120);
+        doc.text(`Total Products Sold: ${<?php echo json_encode($monthlyReport['total_products']); ?>}`, 20, 130);
+        doc.text(`Total Quantity Sold: ${<?php echo json_encode($monthlyReport['total_quantity']); ?>}`, 20, 140);
+
+        // Quarterly Report
+        doc.setFontSize(16);
+        doc.text("Quarterly Report", 20, 150);
+        doc.setFontSize(12);
+        doc.text(`Total Sales: ${<?php echo json_encode($quarterlyReport['total_sales']); ?>}`, 20, 160);
+        doc.text(`Total Products Sold: ${<?php echo json_encode($quarterlyReport['total_products']); ?>}`, 20, 170);
+        doc.text(`Total Quantity Sold: ${<?php echo json_encode($quarterlyReport['total_quantity']); ?>}`, 20, 180);
+
+        // Annual Report
+        doc.setFontSize(16);
+        doc.text("Annual Report", 20, 190);
+        doc.setFontSize(12);
+        doc.text(`Total Sales: ${<?php echo json_encode($annualReport['total_sales']); ?>}`, 20, 200);
+        doc.text(`Total Products Sold: ${<?php echo json_encode($annualReport['total_products']); ?>}`, 20, 210);
+        doc.text(`Total Quantity Sold: ${<?php echo json_encode($annualReport['total_quantity']); ?>}`, 20, 220);
+
+        // Stock Levels
+        doc.setFontSize(16);
+        doc.text("Stock Levels", 20, 230);
+        let stockLevels = <?php echo json_encode($stockLevels); ?>;
+        stockLevels.forEach((product, index) => {
             doc.setFontSize(12);
-            doc.text(`Date: ${currentDate}`, 150, 50); // Position the date at the right corner
+            doc.text(`Product Name: ${product.product_name}, Stock Level: ${product.stock_level}`, 20, 240 + (index * 10));
+        });
 
-            // Weekly Report
-            doc.setFontSize(16);
-            doc.text("Weekly Report", 20, 70);
+        // Most Purchased Products
+        doc.setFontSize(16);
+        doc.text("Most Purchased Products", 20, 240 + (stockLevels.length * 10) + 10);
+        let mostPurchased = <?php echo json_encode($mostPurchased); ?>;
+        mostPurchased.forEach((product, index) => {
             doc.setFontSize(12);
-            doc.text(`Total Sales: ${<?php echo json_encode($weeklyReport['total_sales']); ?>}`, 20, 80);
-            doc.text(`Total Products Sold: ${<?php echo json_encode($weeklyReport['total_products']); ?>}`, 20, 90);
-            doc.text(`Total Quantity Sold: ${<?php echo json_encode($weeklyReport['total_quantity']); ?>}`, 20, 100);
+            doc.text(`Product ID: ${product.product_id}, Total Quantity Sold: ${product.total_quantity}`, 20, 250 + (index * 10) + (stockLevels.length * 10));
+        });
 
-            // Monthly Report
-            doc.setFontSize(16);
-            doc.text("Monthly Report", 20, 110);
-            doc.setFontSize(12);
-            doc.text(`Total Sales: ${<?php echo json_encode($monthlyReport['total_sales']); ?>}`, 20, 120);
-            doc.text(`Total Products Sold: ${<?php echo json_encode($monthlyReport['total_products']); ?>}`, 20, 130);
-            doc.text(`Total Quantity Sold: ${<?php echo json_encode($monthlyReport['total_quantity']); ?>}`, 20, 140);
-
-            // Quarterly Report
-            doc.setFontSize(16);
-            doc.text("Quarterly Report", 20, 150);
-            doc.setFontSize(12);
-            doc.text(`Total Sales: ${<?php echo json_encode($quarterlyReport['total_sales']); ?>}`, 20, 160);
-            doc.text(`Total Products Sold: ${<?php echo json_encode($quarterlyReport['total_products']); ?>}`, 20, 170);
-            doc.text(`Total Quantity Sold: ${<?php echo json_encode($quarterlyReport['total_quantity']); ?>}`, 20, 180);
-
-            // Annual Report
-            doc.setFontSize(16);
-            doc.text("Annual Report", 20, 190);
-            doc.setFontSize(12);
-            doc.text(`Total Sales: ${<?php echo json_encode($annualReport['total_sales']); ?>}`, 20, 200);
-            doc.text(`Total Products Sold: ${<?php echo json_encode($annualReport['total_products']); ?>}`, 20, 210);
-            doc.text(`Total Quantity Sold: ${<?php echo json_encode($annualReport['total_quantity']); ?>}`, 20, 220);
-
-            // Stock Levels
-            doc.setFontSize(16);
-            doc.text("Stock Levels", 20, 230);
-            let stockLevels = <?php echo json_encode($stockLevels->fetch_all(MYSQLI_ASSOC)); ?>;
-            stockLevels.forEach((product, index) => {
-                doc.setFontSize(12);
-                doc.text(`Product Name: ${product.product_name}, Stock Level: ${product.stock_level}`, 20, 240 + (index * 10));
-            });
-
-            // Most Purchased Products
-            doc.setFontSize(16);
-            doc.text("Most Purchased Products", 20, 240 + (stockLevels.length * 10) + 10);
-            let mostPurchased = <?php echo json_encode($mostPurchased->fetch_all(MYSQLI_ASSOC)); ?>;
-            mostPurchased.forEach((product, index) => {
-                doc.setFontSize(12);
-                doc.text(`Product ID: ${product.product_id}, Total Quantity Sold: ${product.total_quantity}`, 20, 250 + (index * 10) + (stockLevels.length * 10));
-            });
-
-            // Save the PDF
-            doc.save("Sale_Report.pdf");
-        };
-    });
+        // Save the PDF
+        doc.save("Sale_Report.pdf");
+    };
+});
 </script>
 
 </body>

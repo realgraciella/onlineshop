@@ -1,15 +1,5 @@
 <?php
-// Connect to the database
-$servername = "localhost";
-$username = "root";
-$password = "";
-$dbname = "dmshop1"; // Replace with your actual database name
-
-$conn = new mysqli($servername, $username, $password, $dbname);
-
-if ($conn->connect_error) {
-    die("Connection failed: " . $conn->connect_error);
-}
+include 'database/db_connect.php';
 
 // Initialize search variable
 $search_query = '';
@@ -23,35 +13,31 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['search'])) {
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (isset($_POST['print_receipt'])) {
         $order_id = $_POST['order_id'];
-        $payment_status = "Paid"; // Set payment status to "Paid"
+        $payment_status = "Paid";
 
-        $update_query = "UPDATE orders SET payment_status = ? WHERE order_id = ?";
-        $stmt = $conn->prepare($update_query);
-        $stmt->bind_param('si', $payment_status, $order_id);
-
-        if ($stmt->execute()) {
-            // Download receipt
+        $update_query = "UPDATE orders SET payment_status = :payment_status WHERE order_id = :order_id";
+        $stmt = $pdo->prepare($update_query);
+        
+        if ($stmt->execute([':payment_status' => $payment_status, ':order_id' => $order_id])) {
             header("Content-Type: application/pdf");
             header("Content-Disposition: attachment; filename=receipt_$order_id.pdf");
-            // Here you would generate the PDF content based on order details
             echo "Receipt for Order ID: $order_id\nPayment Status: $payment_status";
             exit();
         } else {
-            echo "<script>alert('Error updating payment status: " . $conn->error . "');</script>";
+            echo "<script>alert('Error updating payment status.');</script>";
         }
-
-        $stmt->close();
     } elseif (isset($_POST['order_id'])) {
-        // Handle order status update
         $order_id = $_POST['order_id'];
         $order_status = $_POST['order_status'];
         $payment_method = $_POST['payment_method'];
 
-        $update_status_query = "UPDATE orders SET order_status = ?, payment_method = ? WHERE order_id = ?";
-        $stmt = $conn->prepare($update_status_query);
-        $stmt->bind_param('ssi', $order_status, $payment_method, $order_id);
-        $stmt->execute();
-        $stmt->close();
+        $update_status_query = "UPDATE orders SET order_status = :order_status, payment_method = :payment_method WHERE order_id = :order_id";
+        $stmt = $pdo->prepare($update_status_query);
+        $stmt->execute([
+            ':order_status' => $order_status,
+            ':payment_method' => $payment_method,
+            ':order_id' => $order_id
+        ]);
     }
 }
 
@@ -71,18 +57,18 @@ $sql = "
     LEFT JOIN 
         cart c ON o.username = c.username
     WHERE 
-        o.username LIKE ? OR 
-        o.order_id LIKE ?
+        o.username LIKE :search OR 
+        o.order_id LIKE :search
     GROUP BY 
         o.order_id
     ORDER BY 
         o.username, o.order_date";
 
-$stmt = $conn->prepare($sql);
+$stmt = $pdo->prepare($sql);
 $search_param = '%' . $search_query . '%';
-$stmt->bind_param('ss', $search_param, $search_param);
+$stmt->bindParam(':search', $search_param, PDO::PARAM_STR);
 $stmt->execute();
-$result = $stmt->get_result();
+$result = $stmt->fetchAll(PDO::FETCH_ASSOC);
 ?>
 
 <!DOCTYPE html>
@@ -108,19 +94,9 @@ $result = $stmt->get_result();
     <!-- Template Main CSS File -->
     <link href="assets/css/admin.css" rel="stylesheet">
     <style>
-        body {
-            margin-top: 90px; /* Adjust the value as needed */
+        .container h2{
+            margin-top: 100px;
         }
-
-        h2 {
-            margin-top: 30px; /* Adjust the value as needed */
-            text-align: center;
-        }
-
-        .status-pending { color: #ffe165; }
-        .status-processing { color: #1490a6; }
-        .status-completed { color: #4CAF50; }
-        .status-cancelled { color: #f44336; }
     </style>
 </head>
 <body>
@@ -128,7 +104,6 @@ $result = $stmt->get_result();
 <div class="container mt-5">
     <h2>Order List</h2>
 
-    <!-- Search Form -->
     <form method="post" class="mb-3">
         <div class="input-group">
             <input type="text" name="search" class="form-control" placeholder="Search by Order ID or Username" value="<?php echo htmlspecialchars($search_query); ?>">
@@ -138,7 +113,7 @@ $result = $stmt->get_result();
 
     <table class="table table-bordered">
         <thead>
- <tr>
+            <tr>
                 <th>Order ID</th>
                 <th>Username</th>
                 <th>Products</th>
@@ -152,51 +127,32 @@ $result = $stmt->get_result();
         </thead>
         <tbody>
             <?php
-            if ($result->num_rows > 0) {
-                while ($row = $result->fetch_assoc()) {
+            if (count($result) > 0) {
+                foreach ($result as $row) {
                     echo "<tr>";
                     echo "<td>" . htmlspecialchars($row['order_id']) . "</td>";
                     echo "<td>" . htmlspecialchars($row['username']) . "</td>";
                     echo "<td>" . htmlspecialchars($row['products']) . "</td>";
                     echo "<td>" . number_format($row['total_amount'], 2) . "</td>";
                     echo "<td>" . htmlspecialchars($row['order_date']) . "</td>";
-                    echo "<td class='status-" . strtolower($row['order_status']) . "'>";
-                    echo "<form method='post' action=''>";
-                    echo "<input type='hidden' name='order_id' value='" . htmlspecialchars($row['order_id']) . "' />";
-                    echo "<select name='order_status' class='form-control' onchange='this.form.submit()'>";
-                    echo "<option value='pending'" . ($row['order_status'] == 'pending' ? ' selected' : '') . ">Pending</option>";
-                    echo "<option value='processing'" . ($row['order_status'] == 'processing' ? ' selected' : '') . ">Processing</option>";
-                    echo "<option value='completed'" . ($row['order_status'] == 'completed' ? ' selected' : '') . ">Completed</option>";
-                    echo "<option value='cancelled'" . ($row['order_status'] == 'cancelled' ? ' selected' : '') . ">Cancelled</option>";
-                    echo "</select>";
-                    echo "</form></td>";
-                    echo "<td>";
-                    echo "<form method='post' action=''>";
-                    echo "<input type='hidden' name='order_id' value='" . htmlspecialchars($row['order_id']) . "' />";
-                    echo "<select name='payment_method' class='form-control' onchange='this.form.submit()'>";
-                    echo "<option value='gcash'" . ($row['payment_method'] == 'gcash' ? ' selected' : '') . ">GCash</option>";
-                    echo "<option value='cash'" . ($row['payment_method'] == 'cash' ? ' selected' : '') . ">Cash</option>";
-                    echo "</select>";
-                    echo "</form></td>";
+                    echo "<td>" . htmlspecialchars($row['order_status']) . "</td>";
+                    echo "<td>" . htmlspecialchars($row['payment_method']) . "</td>";
                     echo "<td>" . htmlspecialchars($row['payment_status']) . "</td>";
                     echo "<td>";
                     echo "<form method='post' action=''>";
-                    echo "<input type='hidden' name='order_id' value='" . htmlspecialchars(string: $row['order_id']) . "' />";
+                    echo "<input type='hidden' name='order_id' value='" . htmlspecialchars($row['order_id']) . "' />";
                     echo "<button class='btn btn-success' type='submit' name='print_receipt'>Print Receipt</button>";
                     echo "</form>";
                     echo "</td>";
                     echo "</tr>";
                 }
             } else {
-                echo "<tr><td colspan='8'>No orders found.</td></tr>";
+                echo "<tr><td colspan='9'>No orders found.</td></tr>";
             }
             ?>
         </tbody>
     </table>
 </div>
 
-<script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.5.2/dist/umd/popper.min.js"></script>
-<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
 </body>
 </html>

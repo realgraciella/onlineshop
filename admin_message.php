@@ -1,19 +1,8 @@
 <?php
 session_start();
 
-// Database connection
-$host = 'localhost';
-$db = 'dmshop1'; 
-$user = 'root'; 
-$pass = ''; 
-
-try {
-    $conn = new PDO("mysql:host=$host;dbname=$db", $user, $pass);
-    $conn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-} catch (PDOException $e) {
-    echo "Connection failed: " . $e->getMessage();
-    exit();
-}
+// Include the database connection
+include 'database/db_connect.php';
 
 // Check if user is logged in and is an admin
 if (!isset($_SESSION['username']) || $_SESSION['role'] !== 'admin') {
@@ -29,7 +18,7 @@ try {
         WHERE m.admin_id = :admin_id
         ORDER BY m.timestamp DESC"; // Order by timestamp
 
-    $stmt = $conn->prepare($query);
+    $stmt = $pdo->prepare($query); // Use the $pdo variable from db_connect.php
     $stmt->bindParam(':admin_id', $_SESSION['user_id'], PDO::PARAM_INT); // Assuming user_id is stored in session
     $stmt->execute();
     

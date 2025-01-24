@@ -16,8 +16,12 @@ $registration_success = false;
 $duplicate_contact = false;
 
 // Include PHPMailer classes (commented out for now)
-# ...
-# PHPMailer setup code
+
+use PHPMailer\PHPMailer\PHPMailer;
+use PHPMailer\PHPMailer\Exception;
+require 'includes/PHPMailer/src/Exception.php';
+require 'includes/PHPMailer/src/PHPMailer.php';
+require 'includes/PHPMailer/src/SMTP.php';
 
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
     // Collect form data
@@ -98,6 +102,44 @@ if ($stmt->rowCount() > 0) {
         // Insert login credentials into users table with plain text password
         $sql_users = "INSERT INTO users (username, password, role) VALUES (:username, :password, 'Sales Agent')";
         $stmt_users = $pdo->prepare($sql_users);
+    
+        // Bind parameters for the users table
+        $stmt_users->bindParam(':username', $agent_user);
+        $stmt_users->bindParam(':password', $plain_password); // Use plain password
+        $stmt_users->execute();
+    
+        // Send email to the agent
+        $mail = new PHPMailer(true);
+    
+        try {
+            // SMTP settings
+            $mail->isSMTP();
+            $mail->Host = 'smtp.hostinger.com'; // Replace with your SMTP server
+            $mail->SMTPAuth = true;
+            $mail->Username = 'dhomyrna@dmfashion.sitem'; // Replace with your email
+            $mail->Password = 'dmFashion310,'; // Replace with your email password
+            $mail->SMTPSecure = 'tls';
+            $mail->Port = 587;
+    
+            // Email settings
+            $mail->setFrom('dhomyrna@dmfashion.site', 'Dho & Myrna'); // Replace with your email and name
+            $mail->addAddress($agent_email);
+            $mail->isHTML(true);
+            $mail->Subject = 'Agent Registration Successful';
+            $mail->Body    = 'Hello ' . $agent_fname . ',<br><br>Your registration as a sales agent was successful. Your username is: ' . $agent_user . ' and your password is: ' . $password . '.<br><br>Best regards,<br>Dho & Myrna Fashion Boutique';
+    
+            $mail->send();
+        } catch (Exception $e) {
+            $_SESSION['error'] = "Email error: " . $mail->ErrorInfo;
+            header("Location: admin_registerAgent.php");
+            exit();
+        }
+    
+        // Redirect to admin_viewAgent.php after success
+        $_SESSION['success'] = 'Agent registered successfully!';
+        header("Location: admin_viewAgent.php");
+        exit();
+    }
 
         // Bind parameters for the users table
         $stmt_users->bindParam(':username', $agent_user);
@@ -109,14 +151,9 @@ if ($stmt->rowCount() > 0) {
         header("Location: admin_viewAgent.php");
         exit();
         }
-    } catch (PDOException $e) {
-        $_SESSION['error'] = "Database error: " . $e->getMessage();
-        header("Location: admin_registerAgent.php");
-        exit();
+    } 
     }
-}
 
-}
 
 // Clear output buffer
 ob_end_flush();
