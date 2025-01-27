@@ -6,7 +6,7 @@
 <header id="header" class="fixed-top header-inner-pages">
   <div class="container d-flex align-items-center justify-content-lg-between">
 
-    <a href="customer.php" class="logo me-auto me-lg-0"><img src="assets/img/logo/l1.png" alt="" class="img-fluid"></a>
+    <a href="customer.php" class="logo me-auto me-lg-0"><img src="assets/img/logo/lb2.png" alt="" class="img-fluid"></a>
 
     <nav id="navbar" class="navbar order-last order-lg-0">
       <ul>
