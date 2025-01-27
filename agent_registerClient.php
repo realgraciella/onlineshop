@@ -31,6 +31,7 @@ function logError($message) {
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
     try {
         // Collect form data
+        $sales_agent = $_SESSION['username'];
         $client_fname = $_POST['client_fname'];
         $client_mname = $_POST['client_mname'];
         $client_lname = $_POST['client_lname'];
@@ -56,8 +57,8 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         $plain_password = $password;
 
         // Insert client details
-        $sql = "INSERT INTO clients (client_fname, client_mname, client_lname, client_sex, client_age, client_birthdate, client_contact, client_address, client_email, role, client_creationDate, agent_id, client_user)
-                VALUES (:client_fname, :client_mname, :client_lname, :client_sex, :client_age, :client_birthdate, :client_contact, :client_address, :client_email, 'client', NOW(), :agent_id, :client_user)";
+        $sql = "INSERT INTO clients (client_fname, client_mname, client_lname, client_sex, client_age, client_birthdate, client_contact, client_address, client_email, role, client_creationDate, agent_id, client_user, username)
+                VALUES (:client_fname, :client_mname, :client_lname, :client_sex, :client_age, :client_birthdate, :client_contact, :client_address, :client_email, 'client', NOW(), :agent_id, :client_user, :username)";
         $stmt = $pdo->prepare($sql);
         
         $stmt->bindParam(':client_fname', $client_fname);
@@ -71,6 +72,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         $stmt->bindParam(':client_email', $client_email);
         $stmt->bindParam(':agent_id', $_SESSION['agent_id']);
         $stmt->bindParam(':client_user', $client_user);
+        $stmt->bindParam(':username', $_SESSION['username']);
 
         if (!$stmt->execute()) {
             throw new Exception("Failed to register client.");
@@ -98,7 +100,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         $mail->Port = 587;
 
         $mail->setFrom('dhomyrna@dmfashion.site', 'Dho & Myrna');
-        $mail->addAddress($agent_email);
+        $mail->addAddress($client_email);
         $mail->isHTML(true);
         $mail->Subject = 'Agent Registration Successful';
         // $mail->Body = "Hello $client_fname,<br><br>Your registration as a client was successful. Your username is: $client_user and your password is: $password.<br><br>Best regards,<br>Dho & Myrna Fashion Boutique";
@@ -165,10 +167,10 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                                   <h1>Dho & Myrna Fashion Boutique</h1>
                               </div>
                               <div class='email-body'>
-                                  <h2>Hello $agent_fname,</h2>
-                                  <p>Your registration as a sales agent was successful. Here are your details:</p>
+                                  <h2>Hello $client_fname,</h2>
+                                  <p>Sales Agent $sales_agent registered you an account as client successfully. Here are your details:</p>
                                   <ul>
-                                      <li><strong>Username:</strong> $agent_user</li>
+                                      <li><strong>Username:</strong> $client_user</li>
                                       <li><strong>Password:</strong> $password</li>
                                   </ul>
                                   <p>Best regards,<br>Dho & Myrna Fashion Boutique</p>

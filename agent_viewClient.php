@@ -125,10 +125,10 @@ $stmt->execute();
                     <div class="client-info">
                         <strong><?php echo $client_id; ?>.</strong> <?php echo $client_name; ?> (<?php echo $client_user; ?>)
                     </div>
-                    <div class="client-actions">
+                    <!-- <div class="client-actions">
                         <button class="btn-edit" onclick="promptForPin('edit', '<?php echo $client_id; ?>')">Edit</button>
  <button class="btn-delete" onclick="promptForPin('delete', '<?php echo $client_id; ?>')">Delete</button>
-                    </div>
+                    </div> -->
                 </div>
 
                 <?php

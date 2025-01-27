@@ -152,7 +152,7 @@
             echo '
             <div class="col-lg-4 col-md-6 portfolio-item filter-' . $brandClass . '">
               <div class="portfolio-wrap">
-                <img src="uploads/products/'.$product['product_image_url'] . '" class="img-fluid" alt="Product Image">
+                <img src="'.$product['product_image_url'].'" class="img-fluid" alt="Product Image">
                 <div class="portfolio-info">
                   <h4>' . $product['brand_name'] . '</h4>
                   <p>' . $product['product_desc'] . '</p>
