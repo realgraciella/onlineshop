@@ -6,7 +6,7 @@
 <header id="header" class="fixed-top header-inner-pages">
   <div class="container d-flex align-items-center justify-content-lg-between">
 
-    <a href="admin.php" class="logo me-auto me-lg-0"><img src="assets/img/logo/l1.png" alt="" class="img-fluid"></a>
+    <a href="admin.php" class="logo me-auto me-lg-0"><img src="assets/img/logo/lb2.png" alt="" class="img-fluid"></a>
 
     <nav id="navbar" class="navbar order-last order-lg-0">
       <ul>
@@ -47,6 +47,7 @@
             <li><a href='admin_overall_reports.php'><span>Overall Report</span></a></li>
             <li><a href='admin_sagent_report.php'><span>Sales Agent Performance</span></a></li>
             <li><a href='to_return_pro.php'><span>To Return Items</span></a></li>
+            <li><a href='to_return_pro.php'><span>To Pay</span></a></li>
           </ul>
         </li>
         <li class='dropdown'><a href='#'><span>PROFILE</span></a>

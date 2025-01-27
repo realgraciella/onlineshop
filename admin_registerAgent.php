@@ -66,8 +66,8 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         $plain_password = $password;
 
         // Insert agent details with a starting credit limit of 2500 pesos
-        $sql = "INSERT INTO agents (agent_fname, agent_mname, agent_lname, agent_sex, agent_age, agent_birthdate, agent_contact, agent_address, agent_validID, agent_email, id_front_image, id_back_image, role, credit_limit, agent_status, agent_creationDate) 
-                VALUES (:agent_fname, :agent_mname, :agent_lname, :agent_sex, :agent_age, :agent_birthdate, :agent_contact, :agent_address, :agent_validID, :agent_email, :id_front_image, :id_back_image, 'Sales Agent', 2500, 'Active', NOW())";
+        $sql = "INSERT INTO agents (agent_fname, agent_mname, agent_lname, agent_sex, agent_age, agent_birthdate, agent_contact, agent_address, agent_validID, agent_email, id_front_image, id_back_image, role, credit_limit, agent_status, agent_creationDate, agent_user) 
+                VALUES (:agent_fname, :agent_mname, :agent_lname, :agent_sex, :agent_age, :agent_birthdate, :agent_contact, :agent_address, :agent_validID, :agent_email, :id_front_image, :id_back_image, 'Sales Agent', 2500, 'Active', NOW(), :agent_user)";
 
         $stmt = $pdo->prepare($sql);
 
@@ -84,7 +84,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         $stmt->bindParam(':agent_email', $agent_email);
         $stmt->bindParam(':id_front_image', $id_front_data, PDO::PARAM_LOB);
         $stmt->bindParam(':id_back_image', $id_back_data, PDO::PARAM_LOB);
-        // $stmt->bindParam(':agent_user', $agent_user);
+        $stmt->bindParam(':agent_user', $agent_user);
 
         if (!$stmt->execute()) {
             throw new Exception("Failed to insert agent data into the database.");
@@ -258,7 +258,7 @@ ob_end_flush();
         <label for="birthdate">Birthdate:</label>
         <input type="date" id="birthdate" name="agent_birthdate" required>
         <label for="contact">Contact Number:</label>
-        <input type="text" id="contact" name="agent_contact" pattern="\d*" maxlength="15" required>
+        <input type="text" id="contact" name="agent_contact" pattern="\d*" maxlength="11" required>
         <label for="address">Address:</label>
         <input type="text" id="address" name="agent_address" required>
         <label for="email">Email:</label>

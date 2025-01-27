@@ -97,6 +97,10 @@ $result = $stmt->fetchAll(PDO::FETCH_ASSOC);
         .container h2{
             margin-top: 100px;
         }
+        .status-pending { color: #ffe165; }
+        .status-processing { color: #1490a6; }
+        .status-completed { color: #4CAF50; }
+        .status-cancelled { color: #f44336; }
     </style>
 </head>
 <body>
@@ -136,6 +140,23 @@ $result = $stmt->fetchAll(PDO::FETCH_ASSOC);
                     echo "<td>" . number_format($row['total_amount'], 2) . "</td>";
                     echo "<td>" . htmlspecialchars($row['order_date']) . "</td>";
                     echo "<td>" . htmlspecialchars($row['order_status']) . "</td>";
+                            echo "<form method='post' action=''>";
+                            echo "<input type='hidden' name='order_id' value='" . htmlspecialchars($row['order_id']) . "' />";
+                            echo "<select name='order_status' class='form-control' onchange='this.form.submit()'>";
+                            echo "<option value='pending'" . ($row['order_status'] == 'pending' ? ' selected' : '') . ">Pending</option>";
+                            echo "<option value='processing'" . ($row['order_status'] == 'processing' ? ' selected' : '') . ">Processing</option>";
+                            echo "<option value='completed'" . ($row['order_status'] == 'completed' ? ' selected' : '') . ">Completed</option>";
+                            echo "<option value='cancelled'" . ($row['order_status'] == 'cancelled' ? ' selected' : '') . ">Cancelled</option>";
+                            echo "</select>";
+                            echo "</form></td>";
+                            echo "<td>";
+                            echo "<form method='post' action=''>";
+                            echo "<input type='hidden' name='order_id' value='" . htmlspecialchars($row['order_id']) . "' />";
+                            echo "<select name='payment_method' class='form-control' onchange='this.form.submit()'>";
+                            echo "<option value='gcash'" . ($row['payment_method'] == 'gcash' ? ' selected' : '') . ">GCash</option>";
+                            echo "<option value='cash'" . ($row['payment_method'] == 'cash' ? ' selected' : '') . ">Cash</option>";
+                            echo "</select>";
+                            echo "</form></td>";
                     echo "<td>" . htmlspecialchars($row['payment_method']) . "</td>";
                     echo "<td>" . htmlspecialchars($row['payment_status']) . "</td>";
                     echo "<td>";
