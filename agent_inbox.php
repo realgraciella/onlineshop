@@ -78,6 +78,7 @@ try {
         h1 {
             text-align: center;
             color: #333;
+            margin-top: 80px;
             margin-bottom: 30px;
             font-weight: 500;
         }
@@ -163,7 +164,7 @@ try {
 </head>
 <body>
 <?php include 'agent_header.php'; ?>
-    <h1>Message</h1>
+    <h1>Message with Admin</h1>
 
     <div id="chat-box">
         <?php foreach ($messages as $msg): ?>

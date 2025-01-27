@@ -6,16 +6,13 @@
   <header id="header" class="fixed-top header-inner-pages">
     <div class="container d-flex align-items-center justify-content-lg-between">
 
-    <a href="agent.php" class="logo me-auto me-lg-0"><img src="assets\img\logo\l1.png" alt="" class="img-fluid"></a>
+    <a href="agent.php" class="logo me-auto me-lg-0"><img src="assets\img\logo\lb2.png" alt="" class="img-fluid"></a>
 
       <nav id="navbar" class="navbar order-last order-lg-0">
         <ul>
           <li><a class="nav-link scrollto " href="agent.php">HOME</a></li>
-          <li class='dropdown'><a href='agent_products.php'><span>BROCHURE</span></a>
-            <ul>
-              
-            </ul>
-          </li>
+          <li class='dropdown'><a href='agent_dashboard.php'><span>DASHBOARD</span></a></li>
+          <li class='dropdown'><a href='agent_products.php'><span>BROCHURE</span></a></li>
           <li class='dropdown'><a href='#'><span>CUSTOMERS</span></a>
             <ul>
               <li ><a href='agent_registerClient.php'><span>Add Customer</span></a></li>
@@ -33,7 +30,7 @@
           <li class='dropdown'><a href='#'><span>MESSAGES</span></a>
             <ul>
               <li ><a href='agent_inbox.php'><span>Inbox</span></a></li>
-              <li ><a href='agent_inquire.php'><span>Message</span></a></li>
+              <li ><a href='agent_inquire.php'><span>Inquries and Feedback</span></a></li>
             </ul>
           </li>
           <li class='dropdown'><a href='#'><span>PROFILE</span></a>
