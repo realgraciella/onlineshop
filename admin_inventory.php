@@ -183,6 +183,7 @@ $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
             </tbody>
         </table>
     </div>
+    
 
     <!-- Vendor JS Files -->
     <script src="assets/vendor/jquery/jquery.min.js"></script>
