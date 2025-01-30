@@ -170,7 +170,7 @@ $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
                     <tr>
                         <td><?php echo htmlspecialchars($product['product_name']); ?></td>
                         <td><?php echo htmlspecialchars($product['product_desc']); ?></td>
-                        <td><?php echo "PHP " . number_format($product['price_per_variation'], 2); ?></td>
+
                         <td class="stock-level <?php echo ($product['stock_level'] <= 5) ? 'low-stock' : (($product['stock_level'] <= 20) ? 'medium-stock' : 'high-stock'); ?>">
                             <?php echo $product['stock_level']; ?>
                         </td>
@@ -183,7 +183,7 @@ $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
             </tbody>
         </table>
     </div>
-    
+
 
     <!-- Vendor JS Files -->
     <script src="assets/vendor/jquery/jquery.min.js"></script>
