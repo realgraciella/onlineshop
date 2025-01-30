@@ -7,7 +7,7 @@ $salesData = [];
 $errorMessage = '';
 $successMessage = '';
 $sale_date = date('Y-m-d H:i:s'); // Set sale_date to current time
-$customer_name = ''; // Initialize customer name
+$customer_name = ''; // Initialize customer name to an empty string
 $due_date = date('Y-m-d H:i:s', strtotime($sale_date . ' +30 days')); // Initialize due_date
 
 // Check if the user is logged in
@@ -56,6 +56,10 @@ if (!$username) {
             $purchase_stmt = $pdo->prepare($purchase_query);
             $purchase_stmt->execute([$item['product_name'], $item['quantity']]);
         }
+
+        // If you have a way to get the customer name, set it here
+        // For example, if it's passed from a previous page, you can do:
+        // $customer_name = $_POST['customer_name'] ?? ''; // Uncomment if applicable
     }
 }
 ?>
@@ -135,8 +139,8 @@ if (!$username) {
         <h2>Receipt</h2>
 
         <div class="customer-name">
-            <label for="customerName">Customer Name / Agent:</label>
-            <input type="text" id="customerName" name="customerName" placeholder="Enter name here" class="form-control" value="<?= htmlspecialchars($customer_name) ?>">
+            <strong>Customer Name / Agent:</strong>
+            <p><?= htmlspecialchars($customer_name) ?></p>
         </div>
 
         <?php if ($errorMessage): ?>

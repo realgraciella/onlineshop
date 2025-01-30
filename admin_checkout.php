@@ -63,10 +63,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $clear_sales_stmt->execute([$username]);
             $abortMessage = "Checkout cancelled and sales data cleared."; // Set abort message
         } else {
-            $errorMessage = "User not logged in.";
+            $errorMessage = "User  not logged in.";
         }
     } else {
-        $name = $agent_id ? $salesAgents[array_search($agent_id, array_column($salesAgents, 'user_id'))]['username'] : $customer_name;
+        $name = $agent_id ? $salesAgents[array_search($agent_id, array_column($salesAgents, 'agent_id'))]['username'] : $customer_name;
 
         foreach ($checkoutData as $item) {
             $product_name = $item['product_name'];
@@ -99,15 +99,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         $errorMessage = "Error inserting sale: " . $errorInfo[2];
                     }
 
-                    // Insert into sales table
-                    $sales_insert_query = "INSERT INTO sales (agent_id, product_id, username, product_name, product_value, price_per_variation, quantity, sale_amount, sale_date, created_at) 
-                                           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
-                    $sales_insert_stmt = $pdo->prepare($sales_insert_query);
-                    $created_at = date('Y-m-d H:i:s');
-                    $username_display = $username ?? 'Customer'; 
-                    if (!$sales_insert_stmt->execute([$agent_id, $product['product_id'], $username_display, $product['product_name'], $variation['variation_value'], $product_price, $quantity, $total_amount, $sale_date, $created_at])) {
-                        $errorInfo = $sales_insert_stmt->errorInfo();
-                        $errorMessage = "Error inserting sale into sales table: " . $errorInfo[2];
+                    // Insert into pos table
+                    $pos_insert_query = "INSERT INTO pos (username, product_id, product_name, variation_id, variation_value, quantity, price, total_amount, sale_date, pos_status) 
+                                         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'Pending')";
+                    $pos_insert_stmt = $pdo->prepare($pos_insert_query);
+                    if (!$pos_insert_stmt->execute([$username, $product['product_id'], $product['product_name'], $variation_id, $variation['variation_value'], $quantity, $product_price, $total_amount, $sale_date])) {
+                        $errorInfo = $pos_insert_stmt->errorInfo();
+                        $errorMessage = "Error inserting into pos table: " . $errorInfo[2];
                     }
 
                     // Update product stock level in the products table
@@ -313,6 +311,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         <form method="POST" action="print_receipt.php" class="mt-4">
             <input type="hidden" name="checkout_data" value='<?= htmlspecialchars(json_encode($checkoutData)) ?>'>
+            <input type="hidden" name="customer_name" value="<?= htmlspecialchars($customer_name) ?>"> <!-- Add this line -->
             <button type="submit" class="btn btn-primary w-100">Complete Purchase</button>
         </form>
 

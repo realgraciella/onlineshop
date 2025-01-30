@@ -43,21 +43,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $quantity = $item['quantity'];
                 $variation_id = $item['variation_id'];
 
-                // Fetch product details
-                $product_query = "SELECT * FROM products WHERE product_name = ?";
-                $product_stmt = $pdo->prepare($product_query);
-                $product_stmt->execute([$product_name]);
-                $product = $product_stmt->fetch(PDO::FETCH_ASSOC);
+                // Fetch product and variation details using INNER JOIN
+                $query = "
+                    SELECT p.product_id, p.product_name, pv.variation_value, pv.price_per_variation, pv.stock_per_variation
+                    FROM products p
+                    INNER JOIN product_variations pv ON p.product_id = pv.product_id
+                    WHERE p.product_name = ? AND pv.variation_id = ?
+                ";
+                $stmt = $pdo->prepare($query);
+                $stmt->execute([$product_name, $variation_id]);
+                $productVariation = $stmt->fetch(PDO::FETCH_ASSOC);
 
-                // Fetch variation details
-                $variation_query = "SELECT * FROM product_variations WHERE variation_id = ?";
-                $variation_stmt = $pdo->prepare($variation_query);
-                $variation_stmt->execute([$variation_id]);
-                $variation = $variation_stmt->fetch(PDO::FETCH_ASSOC);
-
-                if ($product && $variation && $variation['stock_per_variation'] >= $quantity) {
+                if ($productVariation && $productVariation['stock_per_variation'] >= $quantity) {
                     // Calculate total amount
-                    $total_amount = $variation['price'] * $quantity;
+                    $total_amount = $productVariation['price_per_variation'] * $quantity; // Use price_per_variation
 
                     // Get current date and time for sale_date
                     $sale_date = date('Y-m-d H:i:s');
@@ -66,7 +65,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $pos_query = "INSERT INTO pos (username, product_id, product_name, variation_id, variation_value, quantity, price, total_amount, sale_date, pos_status) 
                                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'On Process')";
                     $pos_stmt = $pdo->prepare($pos_query);
-                    if (!$pos_stmt->execute([$username, $product['product_id'], $product['product_name'], $variation['variation_id'], $variation['variation_value'], $quantity, $variation['price'], $total_amount, $sale_date])) {
+                    if (!$pos_stmt->execute([$username, $productVariation['product_id'], $productVariation['product_name'], $variation_id, $productVariation['variation_value'], $quantity, $productVariation['price_per_variation'], $total_amount, $sale_date])) {
                         $errorInfo = $pos_stmt->errorInfo();
                         $errorMessage = "Error inserting into pos table: " . $errorInfo[2];
                     }
@@ -89,7 +88,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     }
 }
-
 ?>
 
 <!DOCTYPE html>

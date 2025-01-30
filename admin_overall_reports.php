@@ -2,16 +2,15 @@
 include 'database/db_connect.php';
 
 // Function to fetch sales data
-// Function to fetch sales data
 function fetchSalesData($pdo, $period) {
     $validPeriods = ['7 DAY', '1 MONTH', '3 MONTH', '1 YEAR'];
     if (!in_array($period, $validPeriods)) {
         throw new InvalidArgumentException("Invalid period: $period");
     }
-    $query = "SELECT SUM(sale_amount) as total_sales, 
+    $query = "SELECT SUM(total_amount) as total_sales, 
                      COUNT(DISTINCT product_id) as total_products, 
                      SUM(quantity) as total_quantity 
-              FROM sales 
+              FROM store_sales 
               WHERE sale_date >= DATE_SUB(CURDATE(), INTERVAL $period)";
     $stmt = $pdo->query($query);
     return $stmt->fetch(PDO::FETCH_ASSOC);
@@ -24,14 +23,9 @@ $monthlyReport = fetchSalesData($pdo, '1 MONTH');
 $quarterlyReport = fetchSalesData($pdo, '3 MONTH');
 $annualReport = fetchSalesData($pdo, '1 YEAR');
 
-
-// Fetch stock levels
-$stockLevelsStmt = $pdo->query("SELECT product_name, stock_level FROM products");
-$stockLevels = $stockLevelsStmt->fetchAll(PDO::FETCH_ASSOC);
-
 // Fetch most purchased products
 $mostPurchasedStmt = $pdo->query("SELECT product_id, SUM(quantity) as total_quantity 
-                                  FROM sales 
+                                  FROM store_sales 
                                   GROUP BY product_id 
                                   ORDER BY total_quantity DESC 
                                   LIMIT 5");
@@ -156,46 +150,32 @@ $mostPurchased = $mostPurchasedStmt->fetchAll(PDO::FETCH_ASSOC);
     <div class="rep-container">
         <div class="rep-card">
             <h2>Weekly Report</h2>
-            <p>Total Sales: <?php echo $weeklyReport['total_sales']; ?></p>
-            <p>Total Products Sold: <?php echo $weeklyReport['total_products']; ?></p>
-            <p>Total Quantity Sold: <?php echo $weeklyReport['total_quantity']; ?></p>
+            <p>Total Sales: PHP<?php echo $weeklyReport['total_sales']; ?></p>
+            <p>Total Products Sold: <?php echo $weeklyReport['total_products']; ?> brands</p>
+            <p>Total Quantity Sold: <?php echo $weeklyReport['total_quantity']; ?> pcs.</p>
         </div>
 
         <div class="rep-card">
             <h2>Monthly Report</h2>
-            <p>Total Sales: <?php echo $monthlyReport['total_sales']; ?></p>
-            <p>Total Products Sold: <?php echo $monthlyReport['total_products']; ?></p>
-            <p>Total Quantity Sold: <?php echo $monthlyReport['total_quantity']; ?></p>
+            <p>Total Sales: PHP<?php echo $monthlyReport['total_sales']; ?></p>
+            <p>Total Products Sold: <?php echo $monthlyReport['total_products']; ?> brands</p>
+            <p>Total Quantity Sold: <?php echo $monthlyReport['total_quantity']; ?> pcs.</p>
         </div>
 
         <div class="rep-card">
             <h2>Quarterly Report</h2>
-            <p>Total Sales: <?php echo $quarterlyReport['total_sales']; ?></p>
-            <p>Total Products Sold: <?php echo $quarterlyReport['total_products']; ?></p>
-            <p>Total Quantity Sold: <?php echo $quarterlyReport['total_quantity']; ?></p>
+            <p>Total Sales: PHP<?php echo $quarterlyReport['total_sales']; ?></p>
+            <p>Total Products Sold: <?php echo $quarterlyReport['total_products']; ?> brands</p>
+            <p>Total Quantity Sold: <?php echo $quarterlyReport['total_quantity']; ?> pcs.</p>
         </div>
 
         <div class="rep-card">
             <h2>Annual Report</h2>
-            <p>Total Sales: <?php echo $annualReport['total_sales']; ?></p>
-            <p>Total Products Sold: <?php echo $annualReport['total_products']; ?></p>
-            <p>Total Quantity Sold: <?php echo $annualReport['total_quantity']; ?></p>
+            <p>Total Sales: PHP<?php echo $annualReport['total_sales']; ?></p>
+            <p>Total Products Sold: <?php echo $annualReport['total_products']; ?> brands</p>
+            <p>Total Quantity Sold: <?php echo $annualReport['total_quantity']; ?> pcs.</p>
         </div>
     </div>
-
-    <h2>Stock Levels</h2>
-    <table>
-        <tr>
-            <th>Product Name</th>
-            <th>Stock Level</th>
-        </tr>
-        <?php foreach ($stockLevels as $row): ?>
-        <tr>
-            <td><?php echo $row['product_name']; ?></td>
-            <td><?php echo $row['stock_level']; ?></td>
-        </tr>
-        <?php endforeach; ?>
-    </table>
 
     <h2>Most Purchased Products</h2>
     <table>
@@ -270,15 +250,6 @@ document.getElementById('downloadBtn').addEventListener('click', function() {
         doc.text(`Total Sales: ${<?php echo json_encode($annualReport['total_sales']); ?>}`, 20, 200);
         doc.text(`Total Products Sold: ${<?php echo json_encode($annualReport['total_products']); ?>}`, 20, 210);
         doc.text(`Total Quantity Sold: ${<?php echo json_encode($annualReport['total_quantity']); ?>}`, 20, 220);
-
-        // Stock Levels
-        doc.setFontSize(16);
-        doc.text("Stock Levels", 20, 230);
-        let stockLevels = <?php echo json_encode($stockLevels); ?>;
-        stockLevels.forEach((product, index) => {
-            doc.setFontSize(12);
-            doc.text(`Product Name: ${product.product_name}, Stock Level: ${product.stock_level}`, 20, 240 + (index * 10));
-        });
 
         // Most Purchased Products
         doc.setFontSize(16);
