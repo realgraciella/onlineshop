@@ -1,5 +1,6 @@
 <?php
-include('database/db_connect.php');
+include('database/db_connect.php'); // Include PDO connection
+
 // Start session and validate username
 session_start();
 if (!isset($_SESSION['username'])) {
@@ -10,35 +11,27 @@ if (!isset($_SESSION['username'])) {
 $agent_username = $_SESSION['username'];
 var_dump($agent_username); // Debugging: Check if the username is set
 
-// Database connection
-$conn = new mysqli("localhost", "root", "", "dmshop1");
-if ($conn->connect_error) {
-    die("Database connection failed: " . $conn->connect_error);
-}
+try {
+    // Query to fetch orders for the logged-in user
+    $sql = "
+        SELECT 
+            total_amount,
+            order_date,
+            order_status,
+            payment_method,
+            payment_status
+        FROM orders
+        WHERE username = :username 
+        ORDER BY order_date DESC";
 
-// Query to fetch orders for the logged-in user
-$sql = "
-    SELECT 
-        total_amount,
-        order_date,
-        order_status,
-        payment_method,
-        payment_status
-    FROM orders
-    WHERE username = ? 
-    ORDER BY order_date DESC";
+    $stmt = $pdo->prepare($sql);
+    $stmt->bindParam(':username', $agent_username, PDO::PARAM_STR);
+    $stmt->execute();
 
-$stmt = $conn->prepare($sql);
-if (!$stmt) {
-    die("Query preparation failed: " . $conn->error);
-}
-$stmt->bind_param('s', $agent_username);
-$stmt->execute();
-$result = $stmt->get_result();
-
-// Check if there were any errors while executing the query
-if ($result === false) {
-    die("Query execution failed: " . $conn->error);
+    // Fetch all results
+    $orders = $stmt->fetchAll(PDO::FETCH_ASSOC);
+} catch (PDOException $e) {
+    die("Query failed: " . $e->getMessage());
 }
 ?>
 
@@ -50,7 +43,6 @@ if ($result === false) {
     <title>My Orders</title>
     <!-- Favicons -->
     <link href="assets/img/logo/2.png" rel="icon">
-    
 
     <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css?family=Open+Sans:300,300i,400,400i,600,600i,700,700i|Raleway:300,300i,400,400i,500,500i,600,600i,700,700i" rel="stylesheet">
@@ -126,14 +118,14 @@ if ($result === false) {
             <tbody>
                 <?php
                 // Check if orders exist and display them
-                if ($result->num_rows > 0) {
-                    while ($row = $result->fetch_assoc()) {
+                if (!empty($orders)) {
+                    foreach ($orders as $order) {
                         echo "<tr>";
-                        echo "<td>" . number_format($row['total_amount'], 2) . "</td>";
-                        echo "<td>" . htmlspecialchars($row['order_date']) . "</td>";
-                        echo "<td>" . htmlspecialchars($row['order_status']) . "</td>";
-                        echo "<td>" . htmlspecialchars($row['payment_method']) . "</td>";
-                        echo "<td>" . htmlspecialchars($row['payment_status']) . "</td>";
+                        echo "<td>" . number_format($order['total_amount'], 2) . "</td>";
+                        echo "<td>" . htmlspecialchars($order['order_date']) . "</td>";
+                        echo "<td>" . htmlspecialchars($order['order_status']) . "</td>";
+                        echo "<td>" . htmlspecialchars($order['payment_method']) . "</td>";
+                        echo "<td>" . htmlspecialchars($order['payment_status']) . "</td>";
                         echo "</tr>";
                     }
                 } else {
@@ -149,9 +141,3 @@ if ($result === false) {
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
-
-<?php
-// Close the statement and connection
-$stmt->close();
-$conn->close();
-?>

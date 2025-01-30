@@ -46,7 +46,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                 // Insert into product_under_agents table
                 $pua_query = "INSERT INTO product_under_agents (agent_id, username, product_id, product_value, price_per_variation, quantity, total_amount, sale_date, due_date) 
-                              VALUES (?, ?, ?, ?, ?, ?, ?, NOW(), DATE_ADD(NOW(), INTERVAL 30 DAY))";
+                              VALUES (?, ?, ?, ?, ?, ?, ?, NOW(), DATE_ADD(NOW(), INTERVAL 1 MONTH))";
                 $pua_stmt = $pdo->prepare($pua_query);
                 if (!$pua_stmt->execute([$agent_id, $username, $product['product_id'], $variation['variation_value'], $item['price'], $item['quantity'], $total_amount])) {
                     $errorInfo = $pua_stmt->errorInfo();

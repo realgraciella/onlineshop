@@ -11,11 +11,11 @@
               Brias Street, 208 <br>
               Baranggay 3, Nasugbu,<br>
               4231 Batangas<br><br>
-              <strong>Phone:</strong> 099<br>
+              <strong>Phone:</strong> 09658914686<br>
               <strong>Email:</strong> dhomyrna474@gmail.com<br>
             </p>
             <div class="social-links mt-3">
-              <a href="#" class="facebook"><i class="bx bxl-facebook"></i></a>
+              <a href="https://www.facebook.com/dmatrading2013" class="facebook"><i class="bx bxl-facebook"></i></a>
               <a href="#" class="instagram"><i class="bx bxl-instagram"></i></a>
             </div>
           </div>

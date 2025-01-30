@@ -10,7 +10,7 @@ $abortMessage = '';
 
 // Fetch sales agents from the agents and users tables
 $agents_query = "
-    SELECT a.agent_id, u.username, a.agent_fname, a.agent_mname, a.agent_lname 
+    SELECT a.agent_id, u.username, a.agent_fname, a.agent_mname, a.agent_lname, a.credit_limit 
     FROM agents a 
     JOIN users u ON a.agent_user = u.username 
     WHERE u.role = 'Sales Agent'
@@ -48,6 +48,7 @@ if ($username) {
 } else {
     $salesData = []; // No sales data if user is not logged in
 }
+
 
 // Handle the sale if the form is submitted
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -215,6 +216,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         .customer-input {
             display: none;
         }
+        
     </style>
 </head>
 <body>
@@ -233,15 +235,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             </div>
             <div class="mb-3" id="salesAgentDropdown" style="display: none;">
                 <label for="sales_agent" class="form-label">Select Sales Agent</label>
-                <input type="text" id="salesAgentSearch" class="form-control" placeholder="Search for a sales agent...">
-                <select name="sales_agent" id="sales_agent" class="form-select mt-2">
-                    <option value="">--</option>
-                    <?php foreach ($salesAgents as $agent): ?>
-                        <option value="<?= htmlspecialchars($agent['agent_id']) ?>">
-                            <?= htmlspecialchars($agent['username']) ?> (<?= htmlspecialchars($agent['agent_fname'] . ' ' . $agent['agent_mname'] . ' ' . $agent['agent_lname']) ?>)
-                        </option>
-                    <?php endforeach; ?>
-                </select>
+                <input type="text" id="salesAgentSearch" class="form-control mb-2" placeholder="Search for a sales agent...">
+                <div class="custom-dropdown">
+                    <div class="dropdown-toggle" id="dropdownToggle" role="button" aria-expanded="false">
+                        -- Select Agent --
+                    </div>
+                    <ul class="dropdown-menu" id="salesAgentList">
+                        <?php foreach ($salesAgents as $agent): ?>
+                            <li class="dropdown-item <?= $agent['credit_limit'] == 0 ? 'disabled' : '' ?>" 
+                                data-agent-id="<?= htmlspecialchars($agent['agent_id']) ?>">
+                                <?= htmlspecialchars($agent['username']) ?> (<?= htmlspecialchars($agent['agent_fname'] . ' ' . $agent['agent_mname'] . ' ' . $agent['agent_lname']) ?>)
+                            </li>
+                        <?php endforeach; ?>
+                    </ul>
+                </div>
             </div>
             <div class="mb-3 customer-input" id="customerInput" style="display: none;">
                 <label for="customer_name" class="form-label">Customer Name</label>
@@ -335,35 +342,54 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <script src="assets/vendor/jquery/jquery.min.js"></script>
     <script src="assets/vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
     <script>
-        $(document).ready(function() {
+        window.onload = function() {
     // Initially hide the dropdown and customer input
-    $('#salesAgentDropdown').hide();
-    $('#customerInput').hide();
+    document.getElementById('salesAgentDropdown').style.display = 'none';
+    document.getElementById('customerInput').style.display = 'none';
 
-    $('#salesAgentButton').click(function() {
-        $('#salesAgentDropdown').show(); // Show the sales agent dropdown
-        $('#customerInput').hide(); // Hide the customer input
-        $('#sales_agent').val(''); // Reset the sales agent selection
-    });
+    document.getElementById('salesAgentButton').onclick = function() {
+        document.getElementById('salesAgentDropdown').style.display = 'block'; // Show the sales agent dropdown
+        document.getElementById('customerInput').style.display = 'none'; // Hide the customer input
+        document.getElementById('sales_agent').value = ''; // Reset the sales agent selection
+    };
 
-    $('#customerButton').click(function() {
-        $('#salesAgentDropdown').hide(); // Hide the sales agent dropdown
-        $('#customerInput').show(); // Show the customer input
-        $('#customer_name').val(''); // Reset the customer name input
-    });
+    document.getElementById('customerButton').onclick = function() {
+        document.getElementById('salesAgentDropdown').style.display = 'none'; // Hide the sales agent dropdown
+        document.getElementById('customerInput').style.display = 'block'; // Show the customer input
+        document.getElementById('customer_name').value = ''; // Reset the customer name input
+    };
 
     // Search functionality for sales agent dropdown
-    $('#salesAgentSearch').on('keyup', function() {
-        var value = $(this).val().toLowerCase();
-        $('#sales_agent option').filter(function() {
-            $(this).toggle($(this).text().toLowerCase().indexOf(value) > -1);
+    document.getElementById('salesAgentSearch').onkeyup = function() {
+        var value = this.value.toLowerCase();
+        var items = document.querySelectorAll('#salesAgentList .dropdown-item');
+        items.forEach(function(item) {
+            item.style.display = item.textContent.toLowerCase().indexOf(value) > -1 ? 'block' : 'none';
         });
+    };
+
+    // Dropdown toggle
+    document.getElementById('dropdownToggle').onclick = function() {
+        var menu = document.getElementById('salesAgentList');
+        menu.style.display = menu.style.display === 'block' ? 'none' : 'block';
+    };
+
+    // Handle item selection
+    var items = document.querySelectorAll('#salesAgentList .dropdown-item');
+    items.forEach(function(item) {
+        item.onclick = function() {
+            var agentId = this.getAttribute('data-agent-id');
+            var agentName = this.textContent;
+            document.getElementById('dropdownToggle').textContent = agentName; // Update the toggle text
+            document.getElementById('sales_agent').value = agentId; // Set the selected agent ID
+            document.getElementById('salesAgentList').style.display = 'none'; // Hide the dropdown
+        };
     });
 
     <?php if ($abortMessage): ?>
         $('#abortModal').modal('show');
     <?php endif; ?>
-});
+};
     </script>
 </body>
 </html>

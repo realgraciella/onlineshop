@@ -264,7 +264,7 @@ h6 {
 * Mobile Navigation 
 */
 .mobile-nav-toggle {
-  color: #ffffff;
+  color: #000000;
   font-size: 28px;
   cursor: pointer;
   display: none;
@@ -340,8 +340,8 @@ h6 {
   z-index: 99;
   opacity: 1;
   visibility: visible;
-  background: #ffffffa6;
-  box-shadow: 0px 0px 30px rgba(255, 255, 255, 0.514);
+  background: #fff;
+  box-shadow: 0px 0px 30px rgba(127, 137, 161, 0.25);
 }
 
 .navbar-mobile .dropdown ul li {
@@ -366,7 +366,6 @@ h6 {
 .navbar-mobile .dropdown>.dropdown-active {
   display: block;
 }
-
 
 
  /* Dashboard */

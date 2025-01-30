@@ -22,11 +22,11 @@ $selectedYear = isset($_GET['year']) ? (int)$_GET['year'] : null;
 // Combined database query to optimize data fetching
 $query = "
     -- Top 3 Agents with highest sales in the selected month
-    SELECT agent_fname, agent_lname, SUM(sale_amount) AS total_sales 
+    SELECT agent_fname, agent_lname, SUM(total_amount) AS total_sales 
     FROM agents 
-    JOIN sales ON agents.agent_id = sales.agent_id 
+    JOIN store_sales ON agents.agent_user = store_sales.name 
     WHERE (sale_date >= CURDATE() - INTERVAL 1 MONTH OR (MONTH(sale_date) = :month AND YEAR(sale_date) = :year))
-    GROUP BY agents.agent_id 
+    GROUP BY agents.agent_user
     HAVING total_sales > 0
     ORDER BY total_sales DESC LIMIT 3;
 

@@ -2,19 +2,28 @@
 include 'database/db_connect.php';
 
 // Function to fetch sales data
+// Function to fetch sales data
 function fetchSalesData($pdo, $period) {
-    $stmt = $pdo->prepare("SELECT SUM(sale_amount) as total_sales, COUNT(DISTINCT product_id) as total_products, SUM(quantity) as total_quantity 
-                           FROM sales 
-                           WHERE sale_date >= DATE_SUB(CURDATE(), INTERVAL ?)");
-    $stmt->execute([$period]);
+    $validPeriods = ['7 DAY', '1 MONTH', '3 MONTH', '1 YEAR'];
+    if (!in_array($period, $validPeriods)) {
+        throw new InvalidArgumentException("Invalid period: $period");
+    }
+    $query = "SELECT SUM(sale_amount) as total_sales, 
+                     COUNT(DISTINCT product_id) as total_products, 
+                     SUM(quantity) as total_quantity 
+              FROM sales 
+              WHERE sale_date >= DATE_SUB(CURDATE(), INTERVAL $period)";
+    $stmt = $pdo->query($query);
     return $stmt->fetch(PDO::FETCH_ASSOC);
 }
+
 
 // Fetch weekly, monthly, quarterly, and annual reports
 $weeklyReport = fetchSalesData($pdo, '7 DAY');
 $monthlyReport = fetchSalesData($pdo, '1 MONTH');
 $quarterlyReport = fetchSalesData($pdo, '3 MONTH');
 $annualReport = fetchSalesData($pdo, '1 YEAR');
+
 
 // Fetch stock levels
 $stockLevelsStmt = $pdo->query("SELECT product_name, stock_level FROM products");
@@ -202,7 +211,7 @@ $mostPurchased = $mostPurchasedStmt->fetchAll(PDO::FETCH_ASSOC);
         <?php endforeach; ?>
     </table>
 
-    <?php $conn->close(); ?>
+    <?php $pdo = null; ?>
 
     <button id="downloadBtn">Download Report</button>>
 

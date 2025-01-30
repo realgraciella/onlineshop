@@ -44,8 +44,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             // Calculate total amount
             $total_amount = $item['total_amount'];
+            // Prepare to insert into product_under_agents
             $sale_date = date('Y-m-d H:i:s');
-            $due_date = date('Y-m-d H:i:s', strtotime('+30 days'));
+            $due_date = date('Y-m-d H:i:s', strtotime('+1 MONTH'));
 
             // Insert into product_under_agents
             if (!$insertStmt->execute([$agent_id, $username, $product['product_id'], $item['variation'], $item['price'], $item['quantity'], $total_amount, $sale_date, $due_date])) {
@@ -156,7 +157,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         .checkout-list {
             position: fixed;
             right: 20px;
-            top: 80px;
+            top: 300px;
             width: 25%;
             padding: 20px;
             background-color: white;

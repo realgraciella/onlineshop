@@ -23,7 +23,7 @@ try {
             order_status,
             order_date
         FROM orders1
-        WHERE client_id = ?
+        WHERE client_id = ? or client_user = :username
         ORDER BY order_date DESC";
 
     $stmt = $pdo->prepare($sql);

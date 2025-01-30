@@ -438,9 +438,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             // Remove product from checkout list based on variation_id
             function removeFromList(variationId ) {
-    checkoutList = checkoutList.filter(item => item.variationId !== variationId);
-    updateCheckoutList();
-}
+                checkoutList = checkoutList.filter(item => item.variationId !== variationId);
+                updateCheckoutList();
+            }
 
             // Handle checkout action (Proceed to bill printing)
             function checkout() {

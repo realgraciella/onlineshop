@@ -220,7 +220,7 @@
               <div class="phone">
                 <i class="bi bi-phone"></i>
                 <h4>Call:</h4>
-                <p>099</p>
+                <p>09658914686</p>
               </div>
 
             </div>

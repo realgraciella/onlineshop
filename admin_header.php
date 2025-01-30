@@ -4,11 +4,9 @@
 
 <!-- ======= Header ======= -->
 <header id="header" class="fixed-top header-inner-pages">
-  <div class="container d-flex align-items-center justify-content-lg-between">
-
-    <a href="admin.php" class="logo me-auto me-lg-0"><img src="assets/img/logo/lb2.png" alt="" class="img-fluid"></a>
-
-    <nav id="navbar" class="navbar order-last order-lg-0">
+<div class="container d-flex align-items-center justify-content-between">
+  <a href="admin.php" class="logo"><img src="assets/img/logo/lb2.png" alt="Logo" class="img-fluid"></a>
+  <nav id="navbar" class="navbar order-last order-lg-0">
       <ul>
         <li><a class="nav-link scrollto" href="admin.php">HOME</a></li>
         <li><a class="nav-link scrollto" href="admin_pos.php">BROCHURE</a></li>
@@ -42,12 +40,13 @@
             <li><a href='admin_message.php'><span>Agents Message</span></a></li>
           </ul>
         </li>
+        <li><a class="nav-link scrollto" href="admin_inventory.php">INVENTORY</a></li>
         <li class='dropdown'><a href='#'><span>REPORTS</span></a>
           <ul>
             <li><a href='admin_overall_reports.php'><span>Overall Report</span></a></li>
             <li><a href='admin_sagent_report.php'><span>Sales Agent Performance</span></a></li>
             <li><a href='to_return_pro.php'><span>To Return Items</span></a></li>
-            <li><a href='to_return_pro.php'><span>To Pay</span></a></li>
+            <li><a href='to_pay_products.php'><span>To Pay</span></a></li>
           </ul>
         </li>
         <li class='dropdown'><a href='#'><span>PROFILE</span></a>
@@ -57,7 +56,7 @@
           </ul>
         </li>
       </ul>
-      <i class="bi bi-list mobile-nav-toggle"></i>
+      <i class="mobile-nav-toggle bi bi-list"></i>
     </nav><!-- .navbar -->
 
   </div>
@@ -66,13 +65,19 @@
 <!-- ======= JavaScript for Toggle ======= -->
 <script>
   // Toggle Navbar for Mobile View
-  document.addEventListener('DOMContentLoaded', () => {
-    const mobileNavToggle = document.querySelector('.mobile-nav-toggle');
-    const navbar = document.querySelector('#navbar');
+//   document.addEventListener('DOMContentLoaded', () => {
+//   const mobileNavToggle = document.querySelector('.mobile-nav-toggle');
+//   const navbar = document.querySelector('#navbar');
 
-    mobileNavToggle.addEventListener('click', () => {
-      navbar.classList.toggle('navbar-mobile');
-      mobileNavToggle.classList.toggle('bi-x'); // Change the icon on toggle
-    });
-  });
+//   if (!mobileNavToggle || !navbar) {
+//     console.error("Mobile nav toggle or navbar not found");
+//     return;
+//   }
+
+//   mobileNavToggle.addEventListener('click', () => {
+//     navbar.classList.toggle('navbar-mobile'); // Toggle the navbar-mobile class
+//     mobileNavToggle.classList.toggle('bi-x'); // Toggle the icon
+//   });
+// });
+
 </script>
