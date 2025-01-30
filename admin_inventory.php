@@ -133,58 +133,128 @@ $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
         </div>
 
         <table id="productTable">
-            <thead>
-                <tr>
-                    <th>Brand</th>
-                    <th>Product Name</th>
-                    <th>Description</th>
-                    <th>Price</th>
-                    <th>Stocks</th>
-                    <th>Stock per Variation</th>
-                    <th>Last Update</th>
-                </tr>
-            </thead>
-            <tbody>
-                <?php 
-                $currentBrand = '';
-                foreach ($products as $product): 
-                    if ($currentBrand !== $product['brand_name']): 
-                        $currentBrand = $product['brand_name'];
-                ?>
-                    <tr>
-                        <td rowspan="<?php echo count(array_filter($products, fn($p) => $p['brand_name'] === $currentBrand)); ?>">
-                            <?php echo htmlspecialchars($currentBrand); ?>
-                        </td>
-                        <td><?php echo htmlspecialchars($product['product_name']); ?></td>
-                        <td><?php echo htmlspecialchars($product['product_desc']); ?></td>
-                        <td><?php echo "PHP " . number_format($product['price'], 2); ?></td>
-                        <td class="stock-level <?php echo ($product['stock_level'] <= 5) ? 'low-stock' : (($product['stock_level'] <= 20) ? 'medium-stock' : 'high-stock'); ?>">
-                            <?php echo $product['stock_level']; ?>
-                        </td>
-                        <td class="stock-level <?php echo ($product['stock_level'] <= 5) ? 'low-stock' : (($product['stock_level'] <= 20) ? 'medium-stock' : 'high-stock'); ?>">
-                            <?php echo $product['stock_level']; ?>
-                        </td>
-                        <td><?php echo (new DateTime($product['updated_at']))->format('F j, Y'); ?></td>
-                    </tr>
-                <?php else: ?>
-                    <tr>
-                        <td><?php echo htmlspecialchars($product['product_name']); ?></td>
-                        <td><?php echo htmlspecialchars($product['product_desc']); ?></td>
-                        <td><?php echo "PHP " . number_format($product['price_per_variation'], 2); ?></td>
-                        <td class="stock-level <?php echo ($product['stock_level'] <= 5) ? 'low-stock' : (($product['stock_level'] <= 20) ? 'medium-stock' : 'high-stock'); ?>">
-                            <?php echo $product['stock_level']; ?>
-                        </td>
-                        <td class="stock_per_variation <?php echo ($product['stock_per_variation'] <= 5) ? 'low-stock' : (($product['stock_per_variation'] <= 20) ? 'medium-stock' : 'high-stock'); ?>">
-                            <?php echo $product['stock_per_variation']; ?>
-                        </td>
-                        <td><?php echo (new DateTime($product['updated_at']))->format('F j, Y'); ?></td>
-                    </tr>
-                <?php endif; endforeach; ?>
-            </tbody>
-        </table>
+    <thead>
+        <tr>
+            <th>Brand</th>
+            <th>Product Name</th>
+            <th>Description</th>
+            <th>Price</th>
+            <th>Stocks</th>
+            <th>Stock per Variation</th>
+            <th>Last Update</th>
+            <th>Action</th> <!-- New Action Column -->
+        </tr>
+    </thead>
+    <tbody>
+        <?php 
+        $currentBrand = '';
+        foreach ($products as $product): 
+            if ($currentBrand !== $product['brand_name']): 
+                $currentBrand = $product['brand_name'];
+        ?>
+            <tr>
+                <td rowspan="<?php echo count(array_filter($products, fn($p) => $p['brand_name'] === $currentBrand)); ?>">
+                    <?php echo htmlspecialchars($currentBrand); ?>
+                </td>
+                <td><?php echo htmlspecialchars($product['product_name']); ?></td>
+                <td><?php echo htmlspecialchars($product['product_desc']); ?></td>
+                <td><?php echo "PHP " . number_format($product['price'], 2); ?></td>
+                <td class="stock-level <?php echo ($product['stock_level'] <= 5) ? 'low-stock' : (($product['stock_level'] <= 20) ? 'medium-stock' : 'high-stock'); ?>">
+                    <?php echo $product['stock_level']; ?>
+                </td>
+                <td class="stock-level <?php echo ($product['stock_level'] <= 5) ? 'low-stock' : (($product['stock_level'] <= 20) ? 'medium-stock' : 'high-stock'); ?>">
+                    <?php echo $product['stock_level']; ?>
+                </td>
+                <td><?php echo (new DateTime($product['updated_at']))->format('F j, Y'); ?></td>
+                <td>
+                    <?php if ($product['stock_level'] <= 20): // Show button if stock is low or medium ?>
+                        <button class="btn btn-warning" onclick="alert('Restock requested for <?php echo htmlspecialchars($product['product_name']); ?>')">Restock</button>
+                    <?php else: ?>
+                        <button class="btn btn-secondary" disabled>Restock</button> <!-- Disabled button for high stock -->
+                    <?php endif; ?>
+                </td>
+            </tr>
+        <?php else: ?>
+            <tr>
+                <td><?php echo htmlspecialchars($product['product_name']); ?></td>
+                <td><?php echo htmlspecialchars($product['product_desc']); ?></td>
+                <td><?php echo "PHP " . number_format($product['price_per_variation'], 2); ?></td>
+                <td class="stock-level <?php echo ($product['stock_level'] <= 5) ? 'low-stock' : (($product['stock_level'] <= 20) ? 'medium-stock' : 'high-stock'); ?>">
+                    <?php echo $product['stock_level']; ?>
+                </td>
+                <td class="stock_per_variation <?php echo ($product['stock_per_variation'] <= 5) ? 'low-stock' : (($product['stock_per_variation'] <= 20) ? 'medium-stock' : 'high-stock'); ?>">
+                    <?php echo $product['stock_per_variation']; ?>
+                </td>
+                <td><?php echo (new DateTime($product['updated_at']))->format('F j, Y'); ?></td>
+                <td>
+                    <?php if ($product['stock_level'] <= 20): ?>
+                        <button class="btn btn-warning" onclick="alert('Restock requested for <?php echo htmlspecialchars($product['product_name']); ?>')">Restock</button>
+                    <?php else: ?>
+                        <button class="btn btn-secondary" disabled>Restock</button>
+                    <?php endif; ?>
+                </td>
+            </tr>
+        <?php endif; endforeach; ?>
+    </tbody>
+</table>
     </div>
     
+<!-- Add this modal structure just before the closing </body> tag -->
+<div class="modal fade" id="restockModal" tabindex="-1" aria-labelledby="restockModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="restockModalLabel">Restock Product</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="restockForm">
+                    <div class="mb-3">
+                        <label for="productName" class="form-label">Product Name</label>
+                        <input type="text" class="form-control" id="productName" readonly>
+                    </div>
+                    <div class="mb-3">
+                        <label for="restockQuantity" class="form-label">Restock Quantity</label>
+                        <input type="number" class="form-control" id="restockQuantity" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="restockDate" class="form-label">Restock Date</label>
+                        <input type="date" class="form-control" id="restockDate" value="2025-01-30" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Submit Restock</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
 
+<script>
+    // Update the Restock button to open the modal
+    function openRestockModal(productName) {
+        document.getElementById('productName').value = productName;
+        $('#restockModal').modal('show');
+    }
+
+    // Add event listener to the restock buttons
+    document.querySelectorAll('.btn-warning').forEach(button => {
+        button.addEventListener('click', function() {
+            const productName = this.getAttribute('data-product-name');
+            openRestockModal(productName);
+        });
+    });
+
+    // Handle the form submission
+    document.getElementById('restockForm').addEventListener('submit', function(event) {
+        event.preventDefault();
+        const productName = document.getElementById('productName').value;
+        const quantity = document.getElementById('restockQuantity').value;
+        const date = document.getElementById('restockDate').value;
+
+        // Here you can handle the restock logic, e.g., send an AJAX request to the server
+        alert(`Restock request submitted for ${productName} with quantity ${quantity} on ${date}.`);
+        $('#restockModal').modal('hide');
+    });
+</script>
     <!-- Vendor JS Files -->
     <script src="assets/vendor/jquery/jquery.min.js"></script>
     <script src="assets/vendor/bootstrap/js/bootstrap.bundle.min.js"></script>

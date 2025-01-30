@@ -4,7 +4,7 @@ include('database/db_connect.php'); // Include PDO connection
 // Start session and validate username
 session_start();
 if (!isset($_SESSION['username'])) {
-    die("User not logged in."); // Ensure only logged-in users can access
+    die("User  not logged in."); // Ensure only logged-in users can access
 }
 
 // Retrieve the logged-in username from the session
@@ -12,9 +12,14 @@ $agent_username = $_SESSION['username'];
 var_dump($agent_username); // Debugging: Check if the username is set
 
 try {
-    // Query to fetch orders for the logged-in user
+    // Updated query to fetch fields from the orders table without due_date
     $sql = "
         SELECT 
+            order_id,
+            username,
+            name,
+            variation_value,
+            items,
             total_amount,
             order_date,
             order_status,
@@ -108,6 +113,11 @@ try {
         <table class="table table-bordered table-hover">
             <thead>
                 <tr>
+                    <th>Order ID</th>
+                    <th>Username</th>
+                    <th>Name</th>
+                    <th>Variation Value</th>
+                    <th>Items</th>
                     <th>Total Amount</th>
                     <th>Order Date</th>
                     <th>Order Status</th>
@@ -121,6 +131,11 @@ try {
                 if (!empty($orders)) {
                     foreach ($orders as $order) {
                         echo "<tr>";
+                        echo "<td>" . htmlspecialchars($order['order_id']) . "</td>";
+                        echo "<td>" . htmlspecialchars($order['username']) . "</td>";
+                        echo "<td>" . htmlspecialchars($order['name']) . "</td>";
+                        echo "<td>" . htmlspecialchars($order['variation_value']) . "</td>";
+                        echo "<td>" . htmlspecialchars($order['items']) . "</td>";
                         echo "<td>" . number_format($order['total_amount'], 2) . "</td>";
                         echo "<td>" . htmlspecialchars($order['order_date']) . "</td>";
                         echo "<td>" . htmlspecialchars($order['order_status']) . "</td>";
@@ -129,7 +144,7 @@ try {
                         echo "</tr>";
                     }
                 } else {
-                    echo "<tr><td colspan='5' class='text-center'>No orders found.</td></tr>";
+                    echo "<tr><td colspan='10' class='text-center'>No orders found.</td></tr>";
                 }
                 ?>
             </tbody>

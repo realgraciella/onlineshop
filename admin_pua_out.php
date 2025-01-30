@@ -30,6 +30,12 @@ $stmt = $pdo->prepare($query);
 $stmt->execute();
 $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
+// Fetch active sales agents from the agents table
+$agents_query = "SELECT agent_id, agent_user, agent_fname, agent_mname, agent_lname FROM agents WHERE role = 'Sales Agent'";
+$agents_stmt = $pdo->prepare($agents_query);
+$agents_stmt->execute();
+$salesAgents = $agents_stmt->fetchAll(PDO::FETCH_ASSOC);
+
 // Check if data is received from the previous page
 if (isset($_GET['data'])) {
     $checkoutData = json_decode($_GET['data'], true);
@@ -288,12 +294,16 @@ $displayData = $display_stmt->fetchAll(PDO::FETCH_ASSOC);
         <!-- Select Sales Agent Form -->
         <form method="POST" action="" class="mt-4">
             <div class="mb-3">
+                <label for="sales_agent_search" class="form-label">Search Sales Agent</label>
+                <input type="text" id="sales_agent_search" class="form-control" placeholder="Search for an agent...">
+            </div>
+            <div class="mb-3">
                 <label for="sales_agent" class="form-label">Select Active Sales Agent</label>
                 <select name="sales_agent" id="sales_agent" class="form-select select2">
                     <option value="">-- Select an Agent --</option>
                     <?php foreach ($salesAgents as $agent): ?>
-                        <option value="<?= htmlspecialchars($agent['user_id']) ?>" data-username="<?= htmlspecialchars($agent['username']) ?>">
-                            <?= htmlspecialchars($agent['username']) ?>
+                        <option value="<?= htmlspecialchars($agent['agent_id']) ?>" data-username="<?= htmlspecialchars($agent['agent_user']) ?>">
+                            <?= htmlspecialchars($agent['agent_fname'] . ' ' . $agent['agent_mname'] . ' ' . $agent['agent_lname'] . ' (' . $agent['agent_user'] . ')') ?>
                         </option>
                     <?php endforeach; ?>
                 </select>
@@ -421,6 +431,20 @@ $displayData = $display_stmt->fetchAll(PDO::FETCH_ASSOC);
     // Optional: Ensure the values are updated on page load if the form is already populated
     window.onload = updateSalesAgentInfo;
 
+
+    document.getElementById('sales_agent_search').addEventListener('input', function() {
+        var searchValue = this.value.toLowerCase();
+        var options = document.querySelectorAll('#sales_agent option');
+
+        options.forEach(function(option) {
+            var fullName = option.textContent.toLowerCase();
+            if (fullName.includes(searchValue) || searchValue === '') {
+                option.style.display = 'block'; // Show option
+            } else {
+                option.style.display = 'none'; // Hide option
+            }
+        });
+    });
 </script>
 </body>
 </html>

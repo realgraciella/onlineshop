@@ -13,14 +13,15 @@ if (!isset($_SESSION['username']) || $_SESSION['role'] !== 'admin') {
 try {
     // Fetch agents who have sent messages to the admin, ordered by timestamp
     $query = "
-        SELECT DISTINCT m.agent_id, m.username 
+        SELECT DISTINCT m.agent_id, m.username, 
+            CONCAT(a.agent_fname, ' ', a.agent_mname, ' ', a.agent_lname) AS full_name
         FROM adag_messages m
+        JOIN agents a ON m.username = a.agent_user
         WHERE m.admin_id = :admin_id
         ORDER BY m.timestamp DESC"; // Order by timestamp
 
     $stmt = $pdo->prepare($query); // Use the $pdo variable from db_connect.php
     $stmt->bindParam(':admin_id', $_SESSION['user_id'], PDO::PARAM_INT); // Assuming user_id is stored in session
-    // $stmt->bindParam(':admin_id', $num, PDO::PARAM_INT);
     $stmt->execute();
     
     // Fetch all agents
@@ -113,7 +114,7 @@ try {
                 <?php foreach ($agents as $agent): ?>
                     <li>
                         <a href="admin_inbox.php?agent_id=<?php echo $agent['agent_id']; ?>">
-                            <?php echo htmlspecialchars($agent['username']); ?>
+                            <?php echo htmlspecialchars($agent['full_name']) . " (" . htmlspecialchars($agent['username']) . ")"; ?>
                         </a>
                     </li>
                 <?php endforeach; ?>

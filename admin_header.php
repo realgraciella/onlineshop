@@ -35,9 +35,10 @@
         </li>
         <li class='dropdown'><a href='#'><span>MESSAGES</span></a>
           <ul>
+            <li><a href='admin_message.php'><span>Agents Message</span></a></li>
+            <li><a href='admin_sms.php'><span>SMS Reminder</span></a></li>
             <li><a href='admin_viewInquiries.php'><span>Inquiries</span></a></li>
             <li><a href='admin_viewFeedbacks.php'><span>Feedbacks</span></a></li>
-            <li><a href='admin_message.php'><span>Agents Message</span></a></li>
           </ul>
         </li>
         <li><a class="nav-link scrollto" href="admin_inventory.php">INVENTORY</a></li>

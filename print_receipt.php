@@ -184,63 +184,68 @@ if (!$username) {
     </div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
-    <script>
-        document.getElementById('downloadBtn').addEventListener('click', function () {
-            const { jsPDF } = window.jspdf;
-            const doc = new jsPDF();
-            const customerName = document.getElementById('customerName').value;
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.11/jspdf.plugin.autotable.min.js"></script>
 
-            // Add logo
-            const logoUrl = 'assets/img/logo/4.2.png'; // Update with the correct path to your logo image
-            const img = new Image();
-            img.src = logoUrl;
+<script>
+    // Search functionality
+    document.getElementById('searchInput').addEventListener('keyup', function() {
+        const filter = this.value.toLowerCase();
+        const rows = document.querySelectorAll('#productTable tbody tr');
 
-            img.onload = function () {
-                const imgWidth = 50;
-                const imgHeight = (img.height / img.width) * imgWidth;
-                const imgX = (doc.internal.pageSize.width - imgWidth) / 2;
-                const imgY = 10;
+        rows.forEach(row => {
+            const cells = row.querySelectorAll('td');
+            const brand = cells[0].innerText.toLowerCase();
+            const productName = cells[1].innerText.toLowerCase();
+            const description = cells[2].innerText.toLowerCase();
 
-                doc.addImage(img, 'PNG', imgX, imgY, imgWidth, imgHeight);
-                doc.setFontSize(16);
-                doc.text("Receipt", doc.internal.pageSize.width / 2, imgY + imgHeight + 10, { align: 'center' });
-
-                // Prepare table data
-                const tableHeaders = ["Product Name", "Variation", "Quantity", "Price", "Total"];
-                const rows = [];
-
-                document.querySelectorAll('table tbody tr').forEach(row => {
-                    const rowData = [];
-                    row.querySelectorAll('td').forEach(cell => {
-                        rowData.push(cell.innerText);
-                    });
-                    rows.push(rowData);
-                });
-
-                // Add customer name
-                doc.text(`Customer Name: ${customerName}`, 10, imgY + imgHeight + 30);
-
-                // Add table to PDF
-                doc.autoTable({
-                    head: [tableHeaders],
-                    body: rows,
-                    startY: imgY + imgHeight + 40, // Adjust start position below the logo and title
-                    theme: 'grid',
-                    headStyles: { fillColor : [22, 160, 133] }, // Customize header color
-                });
-
-                // Add total amount and due date
-                const totalAmount = <?= json_encode(number_format(array_sum(array_column($salesData, 'total_amount')), 2)) ?>;
-                const dueDate = '<?= date('Y-m-d', strtotime($due_date)) ?>';
-                doc.text(`Total Amount: PHP ${totalAmount}`, 10, doc.lastAutoTable.finalY + 10);
-                doc.text(`Due Date: ${dueDate}`, 10, doc.lastAutoTable.finalY + 20);
-
-                // Save the PDF
-                doc.save('receipt.pdf');
-            };
+            if (brand.includes(filter) || productName.includes(filter) || description.includes(filter)) {
+                row.style.display = '';
+            } else {
+                row.style.display = 'none';
+            }
         });
-    </script>
+    });
+
+    document.getElementById('downloadPdf').addEventListener('click', function() {
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF();
+
+        // Add logo
+        const logo = new Image();
+        logo.src = 'assets/img/logo/4.2.png';
+        logo.onload = function() {
+            doc.addImage(logo, 'PNG', 10, 10, 50, 20); // Adjust the position and size as needed
+            doc.text(`Printed on: ${new Date().toLocaleDateString()}`, 150, 20);
+            doc.text('Product Inventory', 105, 40, { align: 'center' });
+
+            // Add table
+            const tableColumn = ["Brand", "Product Name", "Description", "Price", "Stocks", "Stock per Variation", "Last Update"];
+            const tableRows = [];
+
+            // Get data from the table
+            const rows = document.querySelectorAll('#productTable tbody tr');
+            rows.forEach(row => {
+                const cols = row.querySelectorAll('td');
+                const rowData = [];
+                cols.forEach(col => {
+                    rowData.push(col.innerText);
+                });
+                tableRows.push(rowData);
+            });
+
+            // Use autoTable to create the table in the PDF
+            doc.autoTable ({
+                head: [tableColumn],
+                body: tableRows,
+                startY: 60,
+                theme: 'grid'
+            });
+
+            // Save the PDF
+            doc.save('inventory.pdf');
+        };
+    });
+</script>
 
     <script src="assets/vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
 </body>

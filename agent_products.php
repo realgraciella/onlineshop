@@ -310,101 +310,107 @@ try {
     <script src="assets/vendor/jquery/jquery.min.js"></script>
     <script src="assets/vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
     <script>
-        let selectedVariationId = null;
+        <script>
+    let selectedVariationId = null;
 
-        function showVariationModal(productId, isBuyNow = false) {
-            $('#modalProductId').val(productId);
-            $('#variationOptions').empty();
-            selectedVariationId = null;
+    function showVariationModal(productId, isBuyNow = false) {
+        $('#modalProductId').val(productId);
+        $('#variationOptions').empty();
+        selectedVariationId = null;
 
-            // Fetch variations for the selected product
-            $.ajax({
-                url: 'fetch_variations.php',
-                type: 'POST',
-                data: { product_id: productId },
-                success: function(data) {
-                    const variations = JSON.parse(data);
-                    variations.forEach(variation => {
-                        $('#variationOptions').append(`
-                            <div class="form-check">
-                                <input class="form-check-input" type="radio" name="variation" value="${variation.variation_id}" id="variation_${variation.variation_id}" onchange="updateVariationDetails(${variation.variation_id}, ${variation.price_per_variation}, ${variation.stock_per_variation})">
-                                <label class="form-check-label" for="variation_${variation.variation_id}">
-                                    ${variation.variation_value} - PHP ${variation.price_per_variation} (Stock: ${variation.stock_per_variation})
-                                </label>
-                            </div>
-                        `);
-                    });
+        // Fetch variations for the selected product
+        $.ajax({
+            url: 'fetch_variations.php',
+            type: 'POST',
+            data: { product_id: productId },
+            success: function(data) {
+                const variations = JSON.parse(data);
+                variations.forEach(variation => {
+                    $('#variationOptions').append(`
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="variation" value="${variation.variation_id}" id="variation_${variation.variation_id}" onchange="updateVariationDetails(${variation.variation_id}, ${variation.price_per_variation}, ${variation.stock_per_variation})">
+                            <label class="form-check-label" for="variation_${variation.variation_id}">
+                                ${variation.variation_value} - PHP ${variation.price_per_variation} (Stock: ${variation.stock_per_variation})
+                            </label>
+                        </div>
+                    `);
+                });
 
-                    $('#variationModal').modal('show');
+                $('#variationModal').modal('show');
 
-                    // Set button actions
-                    $('#addToCartButton').off('click').on('click', function() {
-                        if (selectedVariationId) {
-                            addToCart(productId, selectedVariationId, $('#quantity').val());
-                        } else {
-                            alert('Please select a variation.');
-                        }
-                    });
-
-                    $('#buyNowButton').off('click').on('click', function() {
-                        if (selectedVariationId) {
-                            window.location.href = `agent_checkout.php?product_id=${productId}&variation_id=${selectedVariationId}&quantity=${$('#quantity').val()}`;
-                        } else {
-                            alert('Please select a variation.');
-                        }
-                    });
-                }
-            });
-        }
-
-        function updateVariationDetails(variationId, price, stock) {
-            selectedVariationId = variationId;
-            $('#addToCartButton').data('price', price);
-            $('#addToCartButton').data('stock', stock);
-        }
-
-        function changeQuantity(amount) {
-            const quantityInput = $('#quantity');
-            let currentQuantity = parseInt(quantityInput.val());
-            currentQuantity += amount;
-            if (currentQuantity < 1) currentQuantity = 1;
-            quantityInput.val(currentQuantity);
-        }
-
-        function addToCart(productId, variationId, quantity) {
-            const price = $('#addToCartButton').data('price');
-            const variationValue = $('input[name="variation"]:checked').next('label').text().split(' - ')[0]; // Get the selected variation value
-
-            console.log({
-                product_id: productId,
-                variation_id: variationId,
-                variation_value: variationValue,
-                quantity: quantity,
-                price_per_variation: price
-            }); // Log the data being sent
-
-            $.ajax({
-                url: 'add_to_cart.php',
-                type: 'POST',
-                data: {
-                    product_id: productId,
-                    variation_id: variationId,
-                    variation_value: variationValue,
-                    quantity: quantity,
-                    price_per_variation: price
-                },
-                success: function(response) {
-                    const result = JSON.parse(response);
-                    alert(result.message);
-                    if (result.success) {
-                        $('#variationModal').modal('hide');
+                // Set button actions
+                $('#addToCartButton').off('click').on('click', function() {
+                    if (selectedVariationId) {
+                        addToCart(productId, selectedVariationId, $('#quantity').val());
+                    } else {
+                        alert('Please select a variation.');
                     }
-                },
-                error: function() {
-                    alert('Error adding product to cart.');
-                }
-            });
-        }
+                });
+
+                $('#buyNowButton').off('click').on('click', function() {
+                    if (selectedVariationId) {
+                        buyNow(productId, selectedVariationId, $('#quantity').val());
+                    } else {
+                        alert('Please select a variation.');
+                    }
+                });
+            }
+        });
+    }
+
+    function updateVariationDetails(variationId, price, stock) {
+        selectedVariationId = variationId;
+        $('#addToCartButton').data('price', price);
+        $('#addToCartButton').data('stock', stock);
+    }
+
+    function changeQuantity(amount) {
+        const quantityInput = $('#quantity');
+        let currentQuantity = parseInt(quantityInput.val());
+        currentQuantity += amount;
+        if (currentQuantity < 1) currentQuantity = 1;
+        quantityInput.val(currentQuantity);
+    }
+
+    function addToCart(productId, variationId, quantity) {
+        const price = $('#addToCartButton').data('price');
+        const variationValue = $('input[name="variation"]:checked').next('label').text().split(' - ')[0]; // Get the selected variation value
+
+        const data = {
+            product_id: productId,
+            variation_id: variationId,
+            variation_value: variationValue,
+            quantity: quantity,
+            price_per_variation: price
+        };
+
+        fetch('add_to_cart.php', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(data)
+        })
+        .then(response => response.json())
+        .then(result => {
+            alert(result.message);
+            if (result.success) {
+                $('#variationModal').modal('hide');
+            }
+        })
+        .catch(error => {
+            alert('Error adding product to cart.');
+        });
+    }
+
+    function buyNow(productId, variationId, quantity) {
+        const price = $('#addToCartButton').data('price');
+        const variationValue = $('input[name="variation"]:checked').next('label').text().split(' - ')[0]; // Get the selected variation value
+
+        // Redirect to checkout page with parameters
+        window.location.href = `agent_checkout.php?product_id=${productId}&variation_id=${variationId}&quantity=${quantity}`;
+    }
+</script>
     </script>
 </body>
 </html>

@@ -28,6 +28,17 @@ $stmt = $pdo->prepare($sql);
 $stmt->execute([$agent_id]);
 $messages = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
+// Fetch the full name of the agent
+$agent_fullname = '';
+if ($username) {
+    $stmt = $pdo->prepare("SELECT agent_fname, agent_mname, agent_lname FROM agents WHERE agent_user = ?");
+    $stmt->execute([$username]);
+    $agent = $stmt->fetch(PDO::FETCH_ASSOC);
+    if ($agent) {
+        $agent_fullname = trim($agent['agent_fname'] . ' ' . $agent['agent_mname'] . ' ' . $agent['agent_lname']);
+    }
+}
+
 ?>
 
 <!DOCTYPE html>
@@ -126,12 +137,25 @@ $messages = $stmt->fetchAll(PDO::FETCH_ASSOC);
 </head>
 <body>
     <?php include 'admin_header.php'; ?>
-    <h1>Messages with <?php echo htmlspecialchars($username); ?></h1>
+    <h1>Messages with <?php echo htmlspecialchars($agent_fullname); ?> (<?php echo htmlspecialchars($username); ?>)</h1>
 
     <div id="chat-box">
         <?php foreach ($messages as $msg): ?>
             <div class="message <?php echo $msg['username'] == $_SESSION['username'] ? 'mine' : 'other'; ?>">
-                <strong><?php echo htmlspecialchars($msg['username']); ?>:</strong>
+                <strong>
+                    <?php 
+                    // Fetch the full name of the sender if it's an agent
+                    if ($msg['username'] !== $_SESSION['username']) {
+                        $stmt = $pdo->prepare("SELECT agent_fname, agent_mname, agent_lname FROM agents WHERE agent_user = ?");
+                        $stmt->execute([$msg['username']]);
+                        $agent = $stmt->fetch(PDO::FETCH_ASSOC);
+                        $full_name = $agent ? trim($agent['agent_fname'] . ' ' . $agent['agent_mname'] . ' ' . $agent['agent_lname']) : $msg['username'];
+                        echo htmlspecialchars($full_name);
+                    } else {
+                        echo htmlspecialchars($msg['username']);
+                    }
+                    ?>:
+                </strong>
                 <p><?php echo htmlspecialchars($msg['message']); ?></p>
                 <small><?php echo $msg['timestamp']; ?></small>
             </div>
