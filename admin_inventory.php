@@ -1,12 +1,18 @@
 <?php
 include 'database/db_connect.php';
 
-// Query to fetch product details including stock levels
-$query = "SELECT * FROM products";
+// Query to fetch product details including stock levels and variations
+$query = "
+    SELECT p.product_name, p.product_desc, p.price, p.stock_level, 
+           b.brand_name, pv.stock_per_variation, pv.price_per_variation, pv.updated_at
+    FROM products p
+    JOIN brands b ON p.brand_id = b.brand_id
+    JOIN product_variations pv ON p.product_id = pv.product_id
+    ORDER BY b.brand_name, p.product_name
+";
+
 $stmt = $pdo->prepare($query);
 $stmt->execute();
-
-// Fetch all products
 $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
 ?>
 
@@ -35,6 +41,7 @@ $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
     <!-- Template Main CSS File -->
     <link href="assets/css/admin.css" rel="stylesheet">
+    
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -55,6 +62,18 @@ $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
         h1 {
             text-align: center;
             margin-bottom: 20px;
+        }
+
+        .search-container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .search-bar {
+            flex: 1;
+            margin-right: 10px; /* Space between search bar and buttons */
         }
 
         table {
@@ -96,7 +115,6 @@ $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
         .high-stock {
             color: green;
         }
-
     </style>
 </head>
 
@@ -105,29 +123,124 @@ $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
     <div class="inventory-container">
         <h1>Product List</h1>
 
-        <table>
+        <!-- Search Bar and Buttons Container -->
+        <div class="search-container">
+            <input type="text" id="searchInput" class="form-control search-bar" placeholder="Search for products...">
+            <div>
+                <a href="download_inventory_excel.php" class="btn btn-primary">Download Inventory List</a>
+                <a href="#" id="downloadPdf" class="btn btn-primary">Download Inventory PDF</a>
+            </div>
+        </div>
+
+        <table id="productTable">
             <thead>
                 <tr>
+                    <th>Brand</th>
                     <th>Product Name</th>
                     <th>Description</th>
                     <th>Price</th>
-                    <th>Stock Level</th>
+                    <th>Stocks</th>
+                    <th>Stock per Variation</th>
+                    <th>Last Update</th>
                 </tr>
             </thead>
             <tbody>
-                <?php foreach ($products as $product): ?>
+                <?php 
+                $currentBrand = '';
+                foreach ($products as $product): 
+                    if ($currentBrand !== $product['brand_name']): 
+                        $currentBrand = $product['brand_name'];
+                ?>
                     <tr>
+                        <td rowspan="<?php echo count(array_filter($products, fn($p) => $p['brand_name'] === $currentBrand)); ?>">
+                            <?php echo htmlspecialchars($currentBrand); ?>
+                        </td>
                         <td><?php echo htmlspecialchars($product['product_name']); ?></td>
-                        <td><?php echo htmlspecialchars($product['product_description']); ?></td>
-                        <td><?php echo "$" . number_format($product['product_price'], 2); ?></td>
+                        <td><?php echo htmlspecialchars($product['product_desc']); ?></td>
+                        <td><?php echo "PHP " . number_format($product['price'], 2); ?></td>
                         <td class="stock-level <?php echo ($product['stock_level'] <= 5) ? 'low-stock' : (($product['stock_level'] <= 20) ? 'medium-stock' : 'high-stock'); ?>">
                             <?php echo $product['stock_level']; ?>
                         </td>
+                        <td class="stock-level <?php echo ($product['stock_level'] <= 5) ? 'low-stock' : (($product['stock_level'] <= 20) ? 'medium-stock' : 'high-stock'); ?>">
+                            <?php echo $product['stock_level']; ?>
+                        </td>
+                        <td><?php echo (new DateTime($product['updated_at']))->format('F j, Y'); ?></td>
                     </tr>
-                <?php endforeach; ?>
+                <?php else: ?>
+                    <tr>
+                        <td><?php echo htmlspecialchars($product['product_name']); ?></td>
+                        <td><?php echo htmlspecialchars($product['product_desc']); ?></td>
+                        <td><?php echo "PHP " . number_format($product['price_per_variation'], 2); ?></td>
+                        <td class="stock-level <?php echo ($product['stock_level'] <= 5) ? 'low-stock' : (($product['stock_level'] <= 20) ? 'medium-stock' : 'high-stock'); ?>">
+                            <?php echo $product['stock_level']; ?>
+                        </td>
+                        <td class="stock_per_variation <?php echo ($product['stock_per_variation'] <= 5) ? 'low-stock' : (($product['stock_per_variation'] <= 20) ? 'medium-stock' : 'high-stock'); ?>">
+                            <?php echo $product['stock_per_variation']; ?>
+                        </td>
+                        <td><?php echo (new DateTime($product['updated_at']))->format('F j, Y'); ?></td>
+                    </tr>
+                <?php endif; endforeach; ?>
             </tbody>
         </table>
     </div>
+
+    <!-- Vendor JS Files -->
+    <script src="assets/vendor/jquery/jquery.min.js"></script>
+    <script src="assets/vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+    <script>
+    // Search functionality
+    document.getElementById('searchInput').addEventListener('keyup', function() {
+        const filter = this.value.toLowerCase();
+        const rows = document.querySelectorAll('#productTable tbody tr');
+
+        rows.forEach(row => {
+            const cells = row.querySelectorAll('td');
+            const brand = cells[0].innerText.toLowerCase();
+            const productName = cells[1].innerText.toLowerCase();
+            const description = cells[2].innerText.toLowerCase();
+
+            if (brand.includes(filter) || productName.includes(filter) || description.includes(filter)) {
+                row.style.display = '';
+            } else {
+                row.style.display = 'none';
+            }
+        });
+    });
+
+    document.getElementById('downloadPdf').addEventListener('click', function() {
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF();
+
+        // Add logo
+        const logo = new Image();
+        logo.src = 'assets/img/logo/4.2.png';
+        logo.onload = function() {
+            doc.addImage(logo, 'PNG', 10, 10, 50, 20); // Adjust the position and size as needed
+            doc.text(`Printed on: ${new Date().toLocaleDateString()}`, 150, 20);
+            doc.text('Product Inventory', 105, 40, { align: 'center' });
+
+            // Add table
+            const tableColumn = ["Brand", "Product Name", "Description", "Price", "Stocks", "Stock per Variation", "Last Update"];
+            const tableRows = [];
+
+            // Get data from the table
+            const rows = document.querySelectorAll('#productTable tbody tr');
+            rows.forEach(row => {
+                const cols = row.querySelectorAll('td');
+                const rowData = [];
+                cols.forEach(col => {
+                    rowData.push(col.innerText);
+                });
+                tableRows.push(rowData);
+            });
+
+            doc.autoTable(tableColumn, tableRows, { startY: 60 });
+            doc.save('inventory.pdf');
+        };
+    });
+</script>
 </body>
 
 </html>
