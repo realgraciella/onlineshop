@@ -35,7 +35,7 @@ if (isset($_POST['login'])) {
                 $_SESSION['user_id'] = $row['user_id'];
                 $_SESSION['username'] = $username;
                 $_SESSION['role'] = $row['role'];
-
+                
                 // Redirect based on username prefix
                 if (strpos($username, 'AGT-') === 0) {
                     header('Location: agent.php');

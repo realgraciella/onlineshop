@@ -5,24 +5,49 @@ include 'database/db_connect.php'; // Include the PDO connection
 
 // Check if the user is logged in (ensure the username is stored in the session)
 if (!isset($_SESSION['username'])) {
-    // Redirect to login page if the user is not logged in
     header("Location: login.php");
     exit();
 }
 
 // Send message
-if (isset($_POST['send_message'])) {
-    $agent_id = $_POST['agent_id'];
-    $admin_id = $_POST['client_id'];
-    $username = $_SESSION['username']; // Use the username from the session
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+
+    $client_id = $_SESSION['user_id'];
+    $client_user = $_SESSION['username'];
     $message = $_POST['message'];
 
-    // Use PDO to insert the message
+    if (!$client_id || !$client_user || !$message) {
+        echo json_encode(["status" => "error", "message" => "Missing required data."]);
+        exit;
+    }
+
     try {
-        $stmt = $pdo->prepare("INSERT INTO agco_message (agent_id, client_id, username, message) VALUES (?, ?, ?, ?)");
-        $stmt->execute([$agent_id, $admin_id, $username, $message]);
+        // Fetch agent username based on client_user
+        $stmt = $pdo->prepare("SELECT username FROM clients WHERE client_user = ?");
+        $stmt->execute([$client_user]);
+        $agentData = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        if (!$agentData) {
+            echo json_encode(["status" => "error", "message" => "Client user not found in clients table."]);
+            exit;
+        }
+
+        $agent_username = $agentData['username'];
+
+        $stmt = $pdo->prepare("SELECT agent_id FROM agents WHERE agent_user = ?");
+        $stmt->execute([$agent_username]);
+        $agent = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        $agent_id = $agent['agent_id'];
+
+        // Insert message into database
+        $stmt = $pdo->prepare("INSERT INTO agco_message (agent_id, client_id, username, `message`) VALUES (?, ?, ?, ?)");
+        $stmt->execute([$agent_id, $client_id, $client_user, $message]);
+
+        echo json_encode(["status" => "success", "message" => "Message inserted successfully."]);
+        
     } catch (PDOException $e) {
-        echo "Error: " . $e->getMessage();
+        echo json_encode(["status" => "error", "message" => $e->getMessage()]);
     }
 }
 
@@ -171,8 +196,6 @@ try {
     </div>
 
     <form method="POST">
-        <input type="hidden" name="agent_id" value="1"> <!-- Example agent ID -->
-        <input type="hidden" name="client_id" value="1"> <!-- Example admin ID -->
         <input type="text" name="username" value="<?php echo $_SESSION['username']; ?>" readonly>
         <textarea name="message" placeholder="Type your message here..." required></textarea>
         <button type="submit" name="send_message">Send</button>
